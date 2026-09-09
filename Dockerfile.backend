@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend /app/backend
 
-CMD ["/app/backend/entrypoint.sh"]
+CMD ["sh", "/app/backend/entrypoint.sh"]
