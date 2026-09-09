@@ -4,6 +4,7 @@ from apps.core.views import health_check
 
 
 urlpatterns = [
+    path("", health_check, name="root-health"),
     path("health/", health_check),
     path("admin/", admin.site.urls),
     path("api/students/", include("apps.students.urls")),

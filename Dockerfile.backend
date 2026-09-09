@@ -7,4 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend /app/backend
 
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+RUN chmod +x /app/backend/entrypoint.sh
+
+CMD ["/app/backend/entrypoint.sh"]

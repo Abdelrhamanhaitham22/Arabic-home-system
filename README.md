@@ -96,7 +96,7 @@ docker compose exec backend python manage.py test
 |----------|---------|---------|
 | `DJANGO_SECRET_KEY` | `dev-only-secret-key` | Django secret key (required in production) |
 | `DJANGO_DEBUG` | `1` | Set to `0` in production |
-| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated list of allowed hostnames |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated list of allowed hostnames; use `*` to allow any Railway domain |
 | `POSTGRES_HOST` | `localhost` | PostgreSQL host |
 | `POSTGRES_DB` | `arabic_learning` | PostgreSQL database name |
 | `POSTGRES_USER` | `postgres` | PostgreSQL user |
@@ -120,9 +120,10 @@ Deploy the whole stack from `docker-compose.production.yml`. Nginx will proxy `/
 VITE_API_BASE_URL=https://your-backend-service.up.railway.app/api
 ```
 
-2. In the backend Railway service, set the allowed frontend origin:
+2. In the backend Railway service, set the allowed frontend origin and allow any Railway hostname:
 
 ```env
+DJANGO_ALLOWED_HOSTS=*
 CORS_ALLOWED_ORIGINS=https://your-frontend-service.up.railway.app
 ```
 
@@ -131,6 +132,8 @@ Or allow all origins for testing (not recommended for production):
 ```env
 CORS_ALLOW_ALL_ORIGINS=1
 ```
+
+The backend root path (`/`) and `/health/` both return `{"status":"ok"}` for Railway's healthcheck.
 
 ## License
 
