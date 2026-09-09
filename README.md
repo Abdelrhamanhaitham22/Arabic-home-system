@@ -54,7 +54,7 @@ git clone https://github.com/Abdelrhamanhaitham22/Arabic-home-system.git
 cd Arabic-home-system
 ```
 
-### 2. Run with Docker Compose
+### 2. Run locally with Docker Compose
 
 ```bash
 docker compose up --build
@@ -65,13 +65,24 @@ This starts:
 - PostgreSQL at `localhost:5432`
 - React frontend at `http://localhost:5173`
 
-### 3. Create an admin user
+### 3. Run in production with Docker Compose
+
+```bash
+docker compose -f docker-compose.production.yml up --build
+```
+
+This starts:
+- Frontend + Nginx reverse proxy on `http://localhost`
+- Backend API served at `/api/` and `/admin/` via Nginx
+- PostgreSQL database
+
+### 4. Create an admin user
 
 ```bash
 docker compose exec backend python manage.py createsuperuser
 ```
 
-Then access the admin panel at `http://localhost:8000/admin/`.
+Then access the admin panel at `http://localhost/admin/`.
 
 ### 4. Run backend tests
 
@@ -81,14 +92,44 @@ docker compose exec backend python manage.py test
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and configure:
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DJANGO_SECRET_KEY` | `dev-only-secret-key` | Django secret key (required in production) |
+| `DJANGO_DEBUG` | `1` | Set to `0` in production |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated list of allowed hostnames |
+| `POSTGRES_HOST` | `localhost` | PostgreSQL host |
+| `POSTGRES_DB` | `arabic_learning` | PostgreSQL database name |
+| `POSTGRES_USER` | `postgres` | PostgreSQL user |
+| `POSTGRES_PASSWORD` | `postgres` | PostgreSQL password |
+| `POSTGRES_PORT` | `5432` | PostgreSQL port |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Comma-separated allowed frontend origins; use `*` to allow all |
+| `CORS_ALLOW_ALL_ORIGINS` | `0` | Set to `1` to allow CORS from any origin |
+| `DJANGO_SECURE_SSL_REDIRECT` | `0` | Set to `1` to redirect HTTP to HTTPS |
+
+## Railway Deployment
+
+### Single origin (recommended)
+
+Deploy the whole stack from `docker-compose.production.yml`. Nginx will proxy `/api/` and `/admin/` to the backend service automatically.
+
+### Separate frontend and backend services
+
+1. In the frontend Railway service, set the build variable:
 
 ```env
-SECRET_KEY=your-secret-key
-DEBUG=True
-DATABASE_URL=postgres://user:password@db:5432/dbname
-ALLOWED_HOSTS=localhost,127.0.0.1
-CORS_ALLOWED_ORIGINS=http://localhost:5173
+VITE_API_BASE_URL=https://your-backend-service.up.railway.app/api
+```
+
+2. In the backend Railway service, set the allowed frontend origin:
+
+```env
+CORS_ALLOWED_ORIGINS=https://your-frontend-service.up.railway.app
+```
+
+Or allow all origins for testing (not recommended for production):
+
+```env
+CORS_ALLOW_ALL_ORIGINS=1
 ```
 
 ## License
