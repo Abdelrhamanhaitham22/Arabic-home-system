@@ -109,6 +109,11 @@ cors_allow_all_raw = os.environ.get("CORS_ALLOW_ALL_ORIGINS", "0").lower()
 CORS_ALLOW_ALL_ORIGINS = (
     cors_allow_all_raw in ("1", "true", "yes", "on") or cors_allowed_origins_raw.strip() == "*"
 )
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in cors_allowed_origins_raw.split(",")
+    if origin.strip()
+]
 
 USE_X_FORWARDED_HOST = os.environ.get("USE_X_FORWARDED_HOST", "1") == "1"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
