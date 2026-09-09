@@ -54,9 +54,31 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
+WSGI_APPLICATION = "config.wsgi:application"
 
-if os.environ.get("DJANGO_DATABASE", "postgres").lower() == "sqlite":
+
+def _parse_database_url(url):
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    engine = "django.db.backends.postgresql"
+    if parsed.scheme == "sqlite":
+        engine = "django.db.backends.sqlite3"
+    return {
+        "ENGINE": engine,
+        "NAME": parsed.path.lstrip("/"),
+        "USER": parsed.username or "",
+        "PASSWORD": parsed.password or "",
+        "HOST": parsed.hostname or "",
+        "PORT": parsed.port or "",
+    }
+
+
+if os.environ.get("DJANGO_TESTING") == "1":
+    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "test.sqlite3"}}
+elif os.environ.get("DATABASE_URL"):
+    DATABASES = {"default": _parse_database_url(os.environ["DATABASE_URL"])}
+elif os.environ.get("DJANGO_DATABASE", "postgres").lower() == "sqlite":
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
 else:
     DATABASES = {
@@ -69,8 +91,6 @@ else:
             "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         }
     }
-if os.environ.get("DJANGO_TESTING") == "1":
-    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "test.sqlite3"}}
 
 LANGUAGE_CODE = "ar"
 LANGUAGES = [("ar", "Arabic"), ("ru", "Russian")]
