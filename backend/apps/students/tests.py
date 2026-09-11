@@ -2,7 +2,7 @@ import datetime
 
 from django.contrib.auth.models import User
 from django.middleware.csrf import get_token
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from .models import Student
@@ -106,3 +106,16 @@ class StudentRegistrationApiTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 401)
+
+    @override_settings(CSRF_TRUSTED_ORIGINS=["https://frontend.example.com"])
+    def test_staff_login_accepts_csrf_token_from_endpoint(self):
+        User.objects.create_user(username="teacher", password="pass12345", is_staff=True)
+        csrf_response = self.client.get("/api/students/csrf/")
+        response = self.client.post(
+            "/api/students/login/",
+            {"username": "teacher", "password": "pass12345"},
+            HTTP_X_CSRFTOKEN=csrf_response.json()["token"],
+            HTTP_ORIGIN="https://frontend.example.com",
+        )
+
+        self.assertEqual(response.status_code, 200)

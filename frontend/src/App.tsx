@@ -16,8 +16,12 @@ type ResultResponse = { student_name: string; student_code: string; results: Res
 type ApiObject = Record<string, unknown>
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
-function csrfToken() {
-  return document.cookie.split('; ').find(cookie => cookie.startsWith('csrftoken='))?.split('=')[1] || ''
+async function fetchCsrfToken() {
+  const response = await fetch(`${apiBaseUrl}/students/csrf/`, { credentials: 'include' })
+  if (!response.ok) throw new Error('Unable to prepare secure login.')
+  const body = await response.json() as { token?: string }
+  if (!body.token) throw new Error('Unable to prepare secure login.')
+  return body.token
 }
 
 async function readResponse(response: Response): Promise<ApiObject> {
@@ -78,8 +82,8 @@ function TeacherLogin({ t }: { t: Copy }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    await fetch(`${apiBaseUrl}/students/csrf/`, { credentials: 'include' })
-    const response = await fetch(`${apiBaseUrl}/students/login/`, { method: 'POST', credentials: 'include', headers: { 'X-CSRFToken': csrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ username: String(form.get('username') || ''), password: String(form.get('password') || '') }) })
+    const token = await fetchCsrfToken()
+    const response = await fetch(`${apiBaseUrl}/students/login/`, { method: 'POST', credentials: 'include', headers: { 'X-CSRFToken': token, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ username: String(form.get('username') || ''), password: String(form.get('password') || '') }) })
     if (response.ok) window.location.href = '/teacher/students/new'
     else setError(t.teacher)
   }
@@ -98,7 +102,7 @@ function Register({ t }: { t: Copy }) {
   const [form, setForm] = useState({ full_name: '', phone_number: '', address: '', passport_number: '', preferred_language: 'ar' })
   const [state, setState] = useState<{ loading: boolean; error: string; code: string }>({ loading: false, error: '', code: '' })
   const update = (field: keyof typeof form, value: string) => setForm({ ...form, [field]: value })
-  async function submit(event: FormEvent) { event.preventDefault(); setState({ loading: true, error: '', code: '' }); try { await fetch(`${apiBaseUrl}/students/csrf/`, { credentials: 'include' }); const response = await fetch(`${apiBaseUrl}/students/register/`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() }, body: JSON.stringify(form) }); const body = await readResponse(response); if (!response.ok) { const details = Object.values(body).flat().map(String).join(' '); throw new Error(details || 'Request failed') } if (typeof body.student_code !== 'string') throw new Error('The server returned an invalid registration response.'); setState({ loading: false, error: '', code: body.student_code }) } catch (error) { setState({ loading: false, error: error instanceof Error ? error.message : 'Request failed', code: '' }) } }
+  async function submit(event: FormEvent) { event.preventDefault(); setState({ loading: true, error: '', code: '' }); try { const token = await fetchCsrfToken(); const response = await fetch(`${apiBaseUrl}/students/register/`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token }, body: JSON.stringify(form) }); const body = await readResponse(response); if (!response.ok) { const details = Object.values(body).flat().map(String).join(' '); throw new Error(details || 'Request failed') } if (typeof body.student_code !== 'string') throw new Error('The server returned an invalid registration response.'); setState({ loading: false, error: '', code: body.student_code }) } catch (error) { setState({ loading: false, error: error instanceof Error ? error.message : 'Request failed', code: '' }) } }
   if (state.code) return <div className="page centered-page"><div className="success-symbol">✓</div><p className="eyebrow">{t.register}</p><h1>{t.yourCode}</h1><div className="code-display">{state.code}</div><p className="form-intro">{t.saveCode}</p><div className="success-actions"><button className="button primary" onClick={() => navigator.clipboard?.writeText(state.code)}>{t.copy}<span>↗</span></button><button className="button text-button" onClick={() => setState({ loading: false, error: '', code: '' })}>{t.registerAnother}</button></div></div>
   return <div className="page form-page"><div className="form-heading"><p className="eyebrow"><span className="eyebrow-dot" />{t.register}</p><h1>{t.registerTitle}</h1><p className="form-intro">{t.registerBody}</p></div><form className="student-form" onSubmit={submit}><Field label={t.fullName} value={form.full_name} onChange={value => update('full_name', value)} required /><Field label={t.phone} value={form.phone_number} onChange={value => update('phone_number', value)} type="tel" required /><Field label={t.address} value={form.address} onChange={value => update('address', value)} required /><Field label={t.passport} value={form.passport_number} onChange={value => update('passport_number', value)} required /><label className="field"><span>{t.language}</span><select value={form.preferred_language} onChange={event => update('preferred_language', event.target.value)}><option value="ar">{t.arabic}</option><option value="ru">{t.russian}</option></select></label>{state.error && <p className="form-error" role="alert">{state.error}</p>}<button className="button primary submit-button" disabled={state.loading}>{state.loading ? t.registering : t.submit}<span>↗</span></button></form></div>
 }

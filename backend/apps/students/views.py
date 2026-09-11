@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
+from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 from django_ratelimit.decorators import ratelimit
@@ -21,7 +22,7 @@ class IsTeacher(BasePermission):
 @require_GET
 @ensure_csrf_cookie
 def csrf_token(request):
-    return JsonResponse({"detail": "CSRF cookie set."})
+    return JsonResponse({"token": get_token(request)})
 
 
 @require_GET
