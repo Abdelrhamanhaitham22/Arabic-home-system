@@ -33,28 +33,6 @@ wait_for_db
 echo "Running migrations..."
 python manage.py migrate --noinput
 
-if [ -n "${DJANGO_SUPERUSER_USERNAME:-}" ] && [ -n "${DJANGO_SUPERUSER_PASSWORD:-}" ]; then
-    echo "Ensuring configured superuser exists..."
-    python manage.py shell <<'PY'
-import os
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
-username = os.environ["DJANGO_SUPERUSER_USERNAME"]
-password = os.environ["DJANGO_SUPERUSER_PASSWORD"]
-user, created = User.objects.get_or_create(
-    username=username,
-    defaults={"is_staff": True, "is_superuser": True, "is_active": True},
-)
-user.is_staff = True
-user.is_superuser = True
-user.is_active = True
-user.set_password(password)
-user.save()
-print("Superuser created." if created else "Superuser already exists.")
-PY
-fi
-
 echo "Collecting static files..."
 python manage.py collectstatic --noinput --clear
 
