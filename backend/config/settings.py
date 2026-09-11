@@ -114,10 +114,16 @@ CORS_ALLOWED_ORIGINS = [
     for origin in cors_allowed_origins_raw.split(",")
     if origin.strip()
 ]
+CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 USE_X_FORWARDED_HOST = os.environ.get("USE_X_FORWARDED_HOST", "1") == "1"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "0") == "1"
+SESSION_COOKIE_SAMESITE = "None" if not DEBUG else "Lax"
+CSRF_COOKIE_SAMESITE = "None" if not DEBUG else "Lax"
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],

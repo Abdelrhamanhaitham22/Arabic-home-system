@@ -35,7 +35,8 @@ Bilingual (Arabic/Russian) web platform for student registration and exam result
 ## Public Pages
 
 - `/` — Home
-- `/register` — Student registration
+- `/teacher` — Teacher login
+- `/teacher/students/new` — Protected student entry form
 - `/results` — Exam result lookup
 
 ## Public API Endpoints
