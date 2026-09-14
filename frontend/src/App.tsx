@@ -13,6 +13,7 @@ type Result = {
   exam_date: string
 }
 type ResultResponse = { student_name: string; student_code: string; results: Result[]; message?: string }
+type Exam = { id: number; name: string; level: string | null; max_score: number; exam_date: string; sections: { name: string; max_score: number }[]; exam_file_url: string | null }
 
 type ApiObject = Record<string, unknown>
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
@@ -29,7 +30,7 @@ function isResultResponse(body: ApiObject): body is ResultResponse {
 
 const copy = {
   ar: {
-    home: 'الرئيسية', register: 'التسجيل', results: 'النتائج', arabic: 'العربية', russian: 'Русский',
+    home: 'الرئيسية', register: 'التسجيل', exams: 'الاختبارات', results: 'النتائج', arabic: 'العربية', russian: 'Русский',
     eyebrow: 'بوابتك إلى التعلّم', hero: 'نتيجتك.\nخطوتك التالية.', heroBody: 'سجّل بياناتك مرة واحدة، واحتفظ برمزك الدائم للوصول إلى نتائج اختباراتك في أي وقت.',
     start: 'ابدأ التسجيل', check: 'تحقق من نتيجتك', trust: 'خدمة بسيطة، واضحة، ومصممة لتكون معك في كل خطوة.', resultsBody: 'أدخل رمزك الطلابي لرؤية نتائج الاختبارات المنشورة ومتابعة تقدمك.',
     registerTitle: 'أنشئ ملفك الطلابي', registerBody: 'أدخل بياناتك كما تظهر في وثائقك. سنرسل لك رمزاً دائماً بعد التسجيل.',
@@ -38,9 +39,10 @@ const copy = {
     resultsTitle: 'اعرف نتيجتك', code: 'الرمز الطلابي', codeHint: 'مثال: ST202600001', search: 'عرض النتيجة', searching: 'جارٍ البحث…',
     student: 'الطالب', published: 'نتائج منشورة', noResults: 'لم تُنشر نتيجة بعد', noResultsBody: 'ستظهر نتائجك هنا فور اعتمادها. احتفظ برمزك وحاول مرة أخرى لاحقاً.', exam: 'الاختبار', score: 'الدرجة', date: 'التاريخ', percentage: 'النسبة', notFound: 'لم نعثر على هذا الرمز', notFoundBody: 'تحقق من الرمز المكتوب. يجب أن يبدأ بـ ST ويتبعه العام والرقم التسلسلي.',
     required: 'يرجى إكمال هذا الحقل.', footer: 'نتعلم اليوم لنفتح أبواب الغد.',
+    examsTitle: 'اختباراتك المتاحة', examsBody: 'اختر الاختبار المفتوح لمستواك، ثم ارفع صورة أو ملف إجابتك للمراجعة.', noExams: 'لا توجد اختبارات مفتوحة حالياً', examFile: 'تحميل ورقة الاختبار', maxScore: 'الدرجة الكاملة', sections: 'الأقسام', studentCode: 'رمز الطالب', answerFile: 'ملف الإجابة', chooseFile: 'اختر ملفاً', submitExam: 'إرسال الإجابة', submitting: 'جارٍ الإرسال…', submitted: 'تم إرسال إجابتك', submittedBody: 'سيقوم المعلم بمراجعة الملف. احتفظ برمز الطالب لمتابعة النتيجة.', fileTypes: 'PDF أو JPG أو PNG، بحد أقصى 10 ميجابايت', duplicate: 'لقد أرسلت إجابة لهذا الاختبار من قبل.', invalidFile: 'نوع الملف غير مدعوم أو حجمه أكبر من الحد المسموح.', backToExams: 'العودة إلى الاختبارات',
   },
   ru: {
-    home: 'Главная', register: 'Регистрация', results: 'Результаты', arabic: 'العربية', russian: 'Русский',
+    home: 'Главная', register: 'Регистрация', exams: 'Экзамены', results: 'Результаты', arabic: 'العربية', russian: 'Русский',
     eyebrow: 'Ваш путь к обучению', hero: 'Ваш результат.\nВаш следующий шаг.', heroBody: 'Зарегистрируйтесь один раз и сохраните постоянный код для доступа к результатам экзаменов в любое время.',
     start: 'Начать регистрацию', check: 'Проверить результат', trust: 'Простой и понятный сервис, который сопровождает вас на каждом шаге.', resultsBody: 'Введите код студента, чтобы увидеть опубликованные результаты и следить за прогрессом.',
     registerTitle: 'Создайте профиль студента', registerBody: 'Введите данные так, как они указаны в ваших документах. После регистрации вы получите постоянный код.',
@@ -49,6 +51,7 @@ const copy = {
     resultsTitle: 'Проверьте результат', code: 'Код студента', codeHint: 'Например: ST202600001', search: 'Показать результат', searching: 'Поиск…',
     student: 'Студент', published: 'Опубликованные результаты', noResults: 'Результатов пока нет', noResultsBody: 'Результат появится здесь после публикации. Сохраните код и попробуйте позже.', exam: 'Экзамен', score: 'Баллы', date: 'Дата', percentage: 'Процент', notFound: 'Код не найден', notFoundBody: 'Проверьте код. Он должен начинаться с ST, затем идут год и порядковый номер.',
     required: 'Заполните это поле.', footer: 'Учимся сегодня, открываем возможности завтра.',
+    examsTitle: 'Доступные экзамены', examsBody: 'Выберите открытый экзамен и загрузите фотографию или файл с ответами для проверки.', noExams: 'Открытых экзаменов пока нет', examFile: 'Скачать лист экзамена', maxScore: 'Максимальный балл', sections: 'Разделы', studentCode: 'Код студента', answerFile: 'Файл ответов', chooseFile: 'Выберите файл', submitExam: 'Отправить ответы', submitting: 'Отправка…', submitted: 'Ответ отправлен', submittedBody: 'Преподаватель проверит файл. Сохраните код студента для проверки результата.', fileTypes: 'PDF, JPG или PNG, не более 10 МБ', duplicate: 'Вы уже отправляли ответ на этот экзамен.', invalidFile: 'Тип файла не поддерживается или размер превышает лимит.', backToExams: 'Вернуться к экзаменам',
   },
 } as const
 
@@ -56,14 +59,14 @@ function App() {
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('language') as Language) || 'ar')
   const t = copy[language]
   useEffect(() => { localStorage.setItem('language', language); document.documentElement.lang = language; document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr' }, [language])
-  return <BrowserRouter><div className="app-shell"><Header language={language} setLanguage={setLanguage} t={t} /><main><Routes><Route path="/" element={<Home t={t} />} /><Route path="/register" element={<Register t={t} />} /><Route path="/results" element={<Results t={t} />} /></Routes></main><Footer t={t} /></div></BrowserRouter>
+  return <BrowserRouter><div className="app-shell"><Header language={language} setLanguage={setLanguage} t={t} /><main><Routes><Route path="/" element={<Home t={t} />} /><Route path="/register" element={<Register t={t} />} /><Route path="/exams" element={<Exams t={t} />} /><Route path="/results" element={<Results t={t} />} /></Routes></main><Footer t={t} /></div></BrowserRouter>
 }
 
 type Copy = (typeof copy)[Language]
 
 function Header({ language, setLanguage, t }: { language: Language; setLanguage: (language: Language) => void; t: Copy }) {
   const location = useLocation()
-  return <header className="site-header"><Link className="brand" to="/"><img src={logo} alt="بيت العربية" /><span><strong>بيت العربية</strong><small>Arabic Language Center</small></span></Link><nav aria-label="Main navigation"><Link className={location.pathname === '/' ? 'active' : ''} to="/">{t.home}</Link><Link className={location.pathname === '/register' ? 'active' : ''} to="/register">{t.register}</Link><Link className={location.pathname === '/results' ? 'active' : ''} to="/results">{t.results}</Link></nav><div className="language-switcher" aria-label="Language switcher"><button className={language === 'ar' ? 'selected' : ''} onClick={() => setLanguage('ar')}>{t.arabic}</button><span>/</span><button className={language === 'ru' ? 'selected' : ''} onClick={() => setLanguage('ru')}>{t.russian}</button></div></header>
+  return <header className="site-header"><Link className="brand" to="/"><img src={logo} alt="بيت العربية" /><span><strong>بيت العربية</strong><small>Arabic Language Center</small></span></Link><nav aria-label="Main navigation"><Link className={location.pathname === '/' ? 'active' : ''} to="/">{t.home}</Link><Link className={location.pathname === '/register' ? 'active' : ''} to="/register">{t.register}</Link><Link className={location.pathname === '/exams' ? 'active' : ''} to="/exams">{t.exams}</Link><Link className={location.pathname === '/results' ? 'active' : ''} to="/results">{t.results}</Link></nav><div className="language-switcher" aria-label="Language switcher"><button className={language === 'ar' ? 'selected' : ''} onClick={() => setLanguage('ar')}>{t.arabic}</button><span>/</span><button className={language === 'ru' ? 'selected' : ''} onClick={() => setLanguage('ru')}>{t.russian}</button></div></header>
 }
 
 function Home({ t }: { t: Copy }) {
@@ -85,6 +88,19 @@ function Results({ t }: { t: Copy }) {
   const [code, setCode] = useState(''); const [state, setState] = useState<{ loading: boolean; error: string; response: ResultResponse | null }>({ loading: false, error: '', response: null })
   async function search(event: FormEvent) { event.preventDefault(); setState({ loading: true, error: '', response: null }); try { const response = await fetch(`${apiBaseUrl}/results/${code.trim().toUpperCase()}/`); const body = await readResponse(response); if (!response.ok) throw new Error(String(body.message || t.notFound)); if (!isResultResponse(body)) throw new Error('The server returned an invalid results response.'); setState({ loading: false, error: '', response: body }) } catch (error) { setState({ loading: false, error: error instanceof Error ? error.message : t.notFound, response: null }) } }
   return <div className="page results-page"><div className="results-heading"><p className="eyebrow"><span className="eyebrow-dot" />{t.results}</p><h1>{t.resultsTitle}</h1><p className="form-intro">{t.resultsBody}</p></div><form className="lookup-form" onSubmit={search}><label className="field"><span>{t.code}</span><input value={code} onChange={event => setCode(event.target.value)} placeholder={t.codeHint} required /></label><button className="button primary" disabled={state.loading}>{state.loading ? t.searching : t.search}<span>→</span></button></form>{state.error && <div className="notice error-notice" role="alert"><strong>{t.notFound}</strong><p>{state.error || t.notFoundBody}</p></div>}{state.response && <ResultPanel response={state.response} t={t} />}</div>
+}
+
+function Exams({ t }: { t: Copy }) {
+  const [exams, setExams] = useState<Exam[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('')
+  useEffect(() => { fetch(`${apiBaseUrl}/exams/`).then(readResponse).then(body => { if (!Array.isArray(body)) throw new Error('Invalid exam response'); setExams(body as Exam[]) }).catch(error => setError(error instanceof Error ? error.message : 'Request failed')).finally(() => setLoading(false)) }, [])
+  return <div className="page exams-page"><div className="results-heading"><p className="eyebrow"><span className="eyebrow-dot" />{t.exams}</p><h1>{t.examsTitle}</h1><p className="form-intro">{t.examsBody}</p></div>{loading && <p className="form-intro">{t.searching}</p>}{error && <div className="notice error-notice" role="alert"><p>{error}</p></div>}{!loading && !error && !exams.length && <div className="empty-result"><strong>{t.noExams}</strong></div>}<div className="exam-list">{exams.map(exam => <ExamCard key={exam.id} exam={exam} t={t} />)}</div></div>
+}
+
+function ExamCard({ exam, t }: { exam: Exam; t: Copy }) {
+  const [file, setFile] = useState<File | null>(null); const [code, setCode] = useState(''); const [state, setState] = useState({ loading: false, error: '', submitted: false })
+  async function submit(event: FormEvent) { event.preventDefault(); if (!file) return setState({ ...state, error: t.answerFile }); setState({ loading: true, error: '', submitted: false }); const form = new FormData(); form.append('student_code', code.trim()); form.append('exam', String(exam.id)); form.append('answer_file', file); try { const response = await fetch(`${apiBaseUrl}/exams/submissions/`, { method: 'POST', body: form }); const body = await readResponse(response); if (!response.ok) throw new Error(response.status === 409 ? t.duplicate : response.status === 400 ? t.invalidFile : String(body.detail || 'Request failed')); setState({ loading: false, error: '', submitted: true }) } catch (error) { setState({ loading: false, error: error instanceof Error ? error.message : 'Request failed', submitted: false }) } }
+  if (state.submitted) return <article className="exam-card"><div className="success-symbol">✓</div><h2>{t.submitted}</h2><p>{t.submittedBody}</p><button className="button text-button" onClick={() => setState({ loading: false, error: '', submitted: false })}>{t.backToExams}</button></article>
+  return <article className="exam-card"><div className="exam-card-head"><div><p className="result-label">{exam.level || t.exams}</p><h2>{exam.name}</h2><p>{exam.exam_date}</p></div><strong>{exam.max_score} <small>{t.maxScore}</small></strong></div>{exam.exam_file_url && <a className="arrow-link" href={exam.exam_file_url} target="_blank" rel="noreferrer">{t.examFile} ↗</a>}<p className="exam-sections-label">{t.sections}</p><div className="exam-sections">{exam.sections.map(section => <span key={section.name}>{section.name} · {section.max_score}</span>)}</div><form className="exam-submit-form" onSubmit={submit}><Field label={t.studentCode} value={code} onChange={setCode} required /><label className="field"><span>{t.answerFile}</span><input type="file" accept="application/pdf,image/jpeg,image/png" onChange={event => setFile(event.target.files?.[0] || null)} required /><small>{file ? file.name : t.chooseFile} · {t.fileTypes}</small></label>{state.error && <p className="form-error" role="alert">{state.error}</p>}<button className="button primary submit-button" disabled={state.loading}>{state.loading ? t.submitting : t.submitExam}<span>↗</span></button></form></article>
 }
 
 function ResultPanel({ response, t }: { response: ResultResponse; t: Copy }) { return <section className="result-panel" aria-live="polite"><div className="result-head"><div><p className="result-label">{t.student}</p><h2>{response.student_name}</h2></div><span className="code-pill">{response.student_code}</span></div>{response.results.length ? <><p className="result-section-title">{t.published}</p><div className="result-list">{response.results.map(result => <article className="result-row" key={`${result.exam_name}-${result.exam_date}`}><div><h3>{result.exam_name}</h3><p>{result.exam_date}</p></div><div className="score"><strong>{result.score}<small> / {result.max_score}</small></strong><span>{result.percentage}%</span></div></article>)}</div></> : <div className="empty-result"><strong>{t.noResults}</strong><p>{response.message || t.noResultsBody}</p></div>}</section> }
