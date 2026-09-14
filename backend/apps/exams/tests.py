@@ -24,7 +24,7 @@ class SeedLevel6ExamCommandTests(TestCase):
         self.assertEqual(level.order, 6)
         self.assertEqual(exam.level, level)
         self.assertEqual(exam.exam_date, datetime.date(2026, 9, 14))
-        self.assertEqual(exam.max_score, 80)
+        self.assertEqual(exam.max_score, 200)
         self.assertEqual(
             [(section.name, section.max_score) for section in sections],
             [
@@ -34,6 +34,8 @@ class SeedLevel6ExamCommandTests(TestCase):
                 ("Writing", 15),
                 ("Listening", 10),
                 ("Dictation", 10),
+                ("Activity", 40),
+                ("Oral", 80),
             ],
         )
 
@@ -43,7 +45,12 @@ class SeedLevel6ExamCommandTests(TestCase):
 
         self.assertEqual(Level.objects.filter(name="Level 6").count(), 1)
         self.assertEqual(Exam.objects.filter(name="Level 6 Final Exam").count(), 1)
-        self.assertEqual(ExamSection.objects.count(), 6)
+        self.assertEqual(Exam.objects.get(name="Level 6 Final Exam").max_score, 200)
+        self.assertEqual(ExamSection.objects.count(), 8)
+        self.assertEqual(
+            sum(ExamSection.objects.values_list("max_score", flat=True)),
+            200,
+        )
 
 
 class ExamSubmissionApiTests(TestCase):
@@ -53,7 +60,7 @@ class ExamSubmissionApiTests(TestCase):
         self.exam = Exam.objects.create(
             level=self.level,
             name="Level 6 Final Exam",
-            max_score=80,
+            max_score=200,
             exam_date=datetime.date(2026, 2, 26),
             status="open",
         )

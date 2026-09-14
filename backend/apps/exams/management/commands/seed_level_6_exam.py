@@ -14,6 +14,8 @@ SECTIONS = (
     ("Writing", 15),
     ("Listening", 10),
     ("Dictation", 10),
+    ("Activity", 40),
+    ("Oral", 80),
 )
 
 
@@ -38,7 +40,7 @@ class Command(BaseCommand):
             name="Level 6 Final Exam",
             defaults={
                 "level": level,
-                "max_score": 80,
+                "max_score": 200,
                 "exam_date": exam_date,
                 "status": "draft",
             },
@@ -46,6 +48,9 @@ class Command(BaseCommand):
         if exam.level_id != level.id:
             exam.level = level
             exam.save(update_fields=("level",))
+        if exam.max_score != 200:
+            exam.max_score = 200
+            exam.save(update_fields=("max_score",))
 
         exam_file_path = options.get("exam_file")
         if exam_file_path:
@@ -56,11 +61,17 @@ class Command(BaseCommand):
                 exam.exam_file.save(path.name, File(exam_file), save=True)
 
         for order, (name, max_score) in enumerate(SECTIONS, start=1):
-            ExamSection.objects.get_or_create(
+            section, created_section = ExamSection.objects.get_or_create(
                 exam=exam,
                 name=name,
                 defaults={"max_score": max_score, "order": order},
             )
+            if not created_section and (
+                section.max_score != max_score or section.order != order
+            ):
+                section.max_score = max_score
+                section.order = order
+                section.save(update_fields=("max_score", "order"))
 
         action = "Created" if created else "Verified"
-        self.stdout.write(self.style.SUCCESS(f"{action} {exam.name} with 6 sections (80 points)."))
+        self.stdout.write(self.style.SUCCESS(f"{action} {exam.name} with 8 sections (200 points)."))
