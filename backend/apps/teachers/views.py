@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.results.models import ExamSubmission, SectionScore
+from apps.students.models import Student
 
 from .models import TeacherProfile
 
@@ -95,13 +96,23 @@ class TeacherMeView(APIView):
             .prefetch_related("result__section_scores__section")
             .order_by("-submitted_at")
         )
+        students = Student.objects.filter(level__in=profile.levels.all()).select_related("level").order_by("full_name")
         return Response(
             {
                 "username": request.user.get_username(),
                 "levels": list(profile.levels.values("id", "name")),
+                "students": [self.serialize_student(student) for student in students],
                 "submissions": [self.serialize_submission(submission) for submission in submissions],
             }
         )
+
+    @staticmethod
+    def serialize_student(student):
+        return {
+            "student_code": student.student_code,
+            "full_name": student.full_name,
+            "level": student.level.name if student.level else None,
+        }
 
     @staticmethod
     def serialize_submission(submission):

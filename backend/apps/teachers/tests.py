@@ -33,6 +33,10 @@ class TeacherPortalTests(TestCase):
         )
         self.student_one = self.make_student("Student One")
         self.student_two = self.make_student("Student Two")
+        self.student_one.level = self.level_one
+        self.student_one.save(update_fields=("level",))
+        self.student_two.level = self.level_two
+        self.student_two.save(update_fields=("level",))
         self.submission_one = ExamSubmission.objects.create(
             student=self.student_one,
             exam=self.exam_one,
@@ -99,6 +103,7 @@ class TeacherPortalTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual([item["id"] for item in response.data["submissions"]], [self.submission_one.id])
+        self.assertEqual([item["student_code"] for item in response.data["students"]], [self.student_one.student_code])
 
     def test_teacher_cannot_open_unassigned_answer_file(self):
         self.login()
