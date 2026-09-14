@@ -103,6 +103,20 @@ class ResultLookupApiTests(TestCase):
         with self.assertRaises(ValidationError):
             section_score.full_clean()
 
+    def test_submission_file_requires_staff_access(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import ExamSubmission
+
+        submission = ExamSubmission.objects.create(
+            student=self.student,
+            exam=self.exam,
+            answer_file=SimpleUploadedFile("answers.pdf", b"%PDF-1.4"),
+        )
+
+        response = self.client.get(f"/api/results/submissions/{submission.id}/file/")
+
+        self.assertEqual(response.status_code, 403)
+
     def test_submission_creates_draft_result_and_enters_review(self):
         from apps.exams.models import ExamSection
         from .models import ExamSubmission

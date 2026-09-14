@@ -1,12 +1,14 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
+from django.urls import reverse
+from django.utils.html import format_html
 
 from .models import ExamSubmission, Result, SectionScore
 
 
 @admin.register(ExamSubmission)
 class ExamSubmissionAdmin(admin.ModelAdmin):
-    list_display = ("student", "exam", "status", "result_status", "submitted_at", "reviewed_at")
+    list_display = ("student", "exam", "answer_file_link", "status", "result_status", "submitted_at", "reviewed_at")
     search_fields = ("student__student_code", "student__full_name", "exam__name")
     list_filter = ("exam", "status", "submitted_at")
     autocomplete_fields = ("student", "exam")
@@ -17,6 +19,13 @@ class ExamSubmissionAdmin(admin.ModelAdmin):
         if not hasattr(submission, "result"):
             return "Not started"
         return "Published" if submission.result.published else "Draft"
+
+    @admin.display(description="Answer file")
+    def answer_file_link(self, submission):
+        if not submission.answer_file:
+            return "No file"
+        url = reverse("submission-file", args=(submission.id,))
+        return format_html('<a href="{}" target="_blank">Open answer sheet</a>', url)
 
     @admin.action(description="Start review and create draft results")
     def start_review(self, request, queryset):
