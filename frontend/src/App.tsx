@@ -18,6 +18,10 @@ type Result = {
 type ResultResponse = { student_name: string; student_code: string; results: Result[]; message?: string }
 type Exam = { id: number; name: string; level: string | null; max_score: number; exam_date: string; sections: { name: string; max_score: number }[]; exam_file_url: string | null }
 type StudentProfile = { student_code: string; full_name: string; level: string | null }
+type TeacherSection = { id: number; name: string; max_score: number }
+type TeacherResult = { id: number; score: number; published: boolean; teacher_notes: string; sections: { id: number; name: string; max_score: number; score: number; teacher_comment: string }[] }
+type TeacherSubmission = { id: number; student_code: string; student_name: string; exam_name: string; level: string | null; status: string; submitted_at: string; answer_file_url: string; sections: TeacherSection[]; result: TeacherResult | null }
+type TeacherResponse = { username: string; levels: { id: number; name: string }[]; submissions: TeacherSubmission[] }
 
 type ApiObject = Record<string, unknown>
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
@@ -63,7 +67,7 @@ function App() {
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('language') as Language) || 'ar')
   const t = copy[language]
   useEffect(() => { localStorage.setItem('language', language); document.documentElement.lang = language; document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr' }, [language])
-  return <BrowserRouter><div className="app-shell"><Header language={language} setLanguage={setLanguage} t={t} /><main><Routes><Route path="/" element={<Home t={t} />} /><Route path="/register" element={<Register t={t} />} /><Route path="/exams" element={<Exams t={t} />} /><Route path="/results" element={<Results t={t} />} /></Routes></main><Footer t={t} /></div></BrowserRouter>
+  return <BrowserRouter><div className="app-shell"><Header language={language} setLanguage={setLanguage} t={t} /><main><Routes><Route path="/" element={<Home t={t} />} /><Route path="/register" element={<Register t={t} />} /><Route path="/exams" element={<Exams t={t} />} /><Route path="/results" element={<Results t={t} />} /><Route path="/teacher" element={<Teacher />} /></Routes></main><Footer t={t} /></div></BrowserRouter>
 }
 
 type Copy = (typeof copy)[Language]
@@ -98,6 +102,39 @@ function Exams({ t }: { t: Copy }) {
   const [studentCode, setStudentCode] = useState(''); const [profile, setProfile] = useState<StudentProfile | null>(null); const [exams, setExams] = useState<Exam[]>([]); const [loading, setLoading] = useState(false); const [searched, setSearched] = useState(false); const [error, setError] = useState('')
   async function loadExams(event: FormEvent) { event.preventDefault(); const normalizedCode = studentCode.trim().toUpperCase(); if (!normalizedCode) { setError(t.studentCodeRequired); return } setLoading(true); setSearched(true); setError(''); try { const profileResponse = await fetch(`${apiBaseUrl}/students/${encodeURIComponent(normalizedCode)}/level/`); const profileBody = await readResponse(profileResponse); if (!profileResponse.ok) throw new Error(String(profileBody.message || t.notFound)); const studentProfile = profileBody as StudentProfile; setProfile(studentProfile); if (!studentProfile.level) throw new Error(t.levelRequired); const response = await fetch(`${apiBaseUrl}/exams/?student_code=${encodeURIComponent(normalizedCode)}`); const body = await readResponse(response); if (!response.ok) throw new Error(String(body.message || t.notFound)); if (!Array.isArray(body)) throw new Error('Invalid exam response'); setExams(body as Exam[]) } catch (loadError) { setExams([]); setProfile(null); setError(loadError instanceof Error ? loadError.message : t.notFound) } finally { setLoading(false) } }
   return <div className="page exams-page"><div className="results-heading"><p className="eyebrow"><span className="eyebrow-dot" />{t.exams}</p><h1>{t.examsTitle}</h1><p className="form-intro">{t.examsBody}</p></div><form className="lookup-form exam-lookup-form" onSubmit={loadExams}><Field label={t.studentCode} value={studentCode} onChange={setStudentCode} required /><button className="button primary" disabled={loading}>{loading ? t.loadingExams : t.loadExams}<span>→</span></button></form>{profile?.level && <div className="student-level-card"><span>{t.assignedLevel}</span><strong>{profile.level}</strong></div>}{error && <div className="notice error-notice" role="alert"><p>{error}</p></div>}{searched && !loading && !error && !exams.length && <div className="empty-result"><strong>{t.noExams}</strong></div>}<div className="exam-list">{exams.map(exam => <ExamCard key={exam.id} exam={exam} studentCode={studentCode} t={t} />)}</div></div>
+}
+
+function csrfToken() {
+  return document.cookie.split('; ').find(cookie => cookie.startsWith('csrftoken='))?.split('=')[1] || ''
+}
+
+async function teacherRequest(path: string, init: RequestInit = {}) {
+  return fetch(`${apiBaseUrl}${path}`, { ...init, credentials: 'include', headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}), 'X-CSRFToken': csrfToken() } })
+}
+
+function Teacher() {
+  const [session, setSession] = useState<TeacherResponse | null>(null)
+  const [credentials, setCredentials] = useState({ username: '', password: '' })
+  const [state, setState] = useState({ loading: true, error: '', saving: 0 })
+  useEffect(() => { void loadTeacher() }, [])
+  async function loadTeacher() { await fetch(`${apiBaseUrl}/teachers/csrf/`, { credentials: 'include' }); const response = await teacherRequest('/teachers/me/'); if (response.ok) setSession(await response.json() as TeacherResponse); setState(value => ({ ...value, loading: false })) }
+  async function loginTeacher(event: FormEvent) { event.preventDefault(); setState(value => ({ ...value, loading: true, error: '' })); await fetch(`${apiBaseUrl}/teachers/csrf/`, { credentials: 'include' }); const response = await teacherRequest('/teachers/login/', { method: 'POST', body: JSON.stringify(credentials) }); const body = await response.json() as ApiObject; if (!response.ok) { setState(value => ({ ...value, loading: false, error: String(body.detail || 'Login failed') })); return } await loadTeacher() }
+  async function logoutTeacher() { await teacherRequest('/teachers/logout/', { method: 'POST' }); setSession(null) }
+  if (state.loading && !session) return <div className="page centered-page"><p>Loading…</p></div>
+  if (!session) return <div className="page form-page teacher-page"><div className="form-heading"><p className="eyebrow"><span className="eyebrow-dot" />Teacher portal</p><h1>Review student work.</h1><p className="form-intro">Sign in to review submissions for your assigned levels.</p></div><form className="teacher-login-form" onSubmit={loginTeacher}><Field label="Username" value={credentials.username} onChange={value => setCredentials({ ...credentials, username: value })} required /><Field label="Password" type="password" value={credentials.password} onChange={value => setCredentials({ ...credentials, password: value })} required />{state.error && <p className="form-error" role="alert">{state.error}</p>}<button className="button primary submit-button" disabled={state.loading}>{state.loading ? 'Signing in…' : 'Sign in'}<span>→</span></button></form></div>
+  return <TeacherDashboard session={session} onLogout={logoutTeacher} saving={state.saving} setSaving={saving => setState(value => ({ ...value, saving }))} refresh={loadTeacher} />
+}
+
+function TeacherDashboard({ session, onLogout, saving, setSaving, refresh }: { session: TeacherResponse; onLogout: () => void; saving: number; setSaving: (id: number) => void; refresh: () => Promise<void> }) {
+  return <div className="page teacher-page"><div className="teacher-heading"><div><p className="eyebrow"><span className="eyebrow-dot" />Teacher portal</p><h1>Submission review.</h1><p className="form-intro">Signed in as {session.username}. Assigned levels: {session.levels.map(level => level.name).join(', ') || 'None'}.</p></div><button className="button text-button" onClick={onLogout}>Sign out <span>↗</span></button></div><div className="teacher-submissions">{session.submissions.length ? session.submissions.map(submission => <TeacherSubmissionCard key={submission.id} submission={submission} saving={saving === submission.id} setSaving={setSaving} refresh={refresh} />) : <div className="empty-result"><strong>No submissions yet.</strong></div>}</div></div>
+}
+
+function TeacherSubmissionCard({ submission, saving, setSaving, refresh }: { submission: TeacherSubmission; saving: boolean; setSaving: (id: number) => void; refresh: () => Promise<void> }) {
+  const initialScores = Object.fromEntries(submission.sections.map(section => [section.id, submission.result?.sections.find(score => score.id === section.id)?.score ?? 0])) as Record<number, number>
+  const initialComments = Object.fromEntries(submission.sections.map(section => [section.id, submission.result?.sections.find(score => score.id === section.id)?.teacher_comment ?? ''])) as Record<number, string>
+  const [scores, setScores] = useState(initialScores); const [comments, setComments] = useState(initialComments); const [notes, setNotes] = useState(submission.result?.teacher_notes || ''); const [publish, setPublish] = useState(false); const [error, setError] = useState('')
+  async function save(event: FormEvent) { event.preventDefault(); setSaving(submission.id); setError(''); const response = await teacherRequest(`/teachers/submissions/${submission.id}/grade/`, { method: 'PUT', body: JSON.stringify({ sections: submission.sections.map(section => ({ section_id: section.id, score: scores[section.id], teacher_comment: comments[section.id] })), teacher_notes: notes, publish }) }); const body = await response.json() as ApiObject; setSaving(0); if (!response.ok) { setError(String(body.detail || 'Could not save grade')); return } setPublish(false); await refresh() }
+  return <article className="teacher-submission"><div className="teacher-submission-head"><div><p className="result-label">{submission.level || 'Unassigned level'} · {submission.status}</p><h2>{submission.student_name}</h2><p>{submission.student_code} · {submission.exam_name}</p></div><a className="arrow-link" href={`${apiBaseUrl}${submission.answer_file_url}`} target="_blank" rel="noreferrer">Open answer sheet ↗</a></div><form onSubmit={save}><div className="teacher-score-grid">{submission.sections.map(section => <label className="field" key={section.id}><span>{section.name} / {section.max_score}</span><input type="number" min="0" max={section.max_score} value={scores[section.id]} onChange={event => setScores({ ...scores, [section.id]: Number(event.target.value) })} /><input placeholder="Section comment" value={comments[section.id]} onChange={event => setComments({ ...comments, [section.id]: event.target.value })} /></label>)}</div><label className="field"><span>Teacher notes</span><textarea value={notes} onChange={event => setNotes(event.target.value)} /></label>{error && <p className="form-error" role="alert">{error}</p>}<div className="teacher-actions"><button className="button primary" disabled={saving}>{saving ? 'Saving…' : 'Save draft'}<span>↗</span></button><button type="button" className="button text-button" disabled={saving} onClick={() => setPublish(true)}>Save and publish <span>↗</span></button>{publish && <button className="button primary" disabled={saving}>Confirm publish</button>}</div></form></article>
 }
 
 function ExamCard({ exam, studentCode, t }: { exam: Exam; studentCode: string; t: Copy }) {
