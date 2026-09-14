@@ -73,12 +73,41 @@ class ExamSubmissionApiTests(TestCase):
         )
 
     def test_open_exam_is_listed_with_sections_and_file_url(self):
-        response = self.client.get("/api/exams/")
+        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]["name"], "Level 6 Final Exam")
         self.assertEqual(response.data[0]["level"], "Level 6")
         self.assertIsNone(response.data[0]["exam_file_url"])
+
+    def test_exam_list_requires_student_code(self):
+        response = self.client.get("/api/exams/")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["error"], "student_code_required")
+
+    def test_exam_list_only_returns_students_level(self):
+        other_level = Level.objects.create(name="Level 5", order=5)
+        Exam.objects.create(
+            level=other_level,
+            name="Level 5 Final Exam",
+            max_score=100,
+            exam_date=datetime.date(2026, 2, 26),
+            status="open",
+        )
+
+        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
+
+        self.assertEqual([exam["name"] for exam in response.data], ["Level 6 Final Exam"])
+
+    def test_exam_list_requires_assigned_level(self):
+        self.student.level = None
+        self.student.save(update_fields=("level",))
+
+        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data["error"], "student_level_required")
 
     def test_student_can_submit_supported_answer_file_once(self):
         answer_file = SimpleUploadedFile("answers.pdf", b"%PDF-1.4", content_type="application/pdf")
@@ -91,6 +120,26 @@ class ExamSubmissionApiTests(TestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["status"], "submitted")
+
+    def test_student_cannot_submit_exam_from_another_level(self):
+        other_level = Level.objects.create(name="Level 5", order=5)
+        other_exam = Exam.objects.create(
+            level=other_level,
+            name="Level 5 Final Exam",
+            max_score=100,
+            exam_date=datetime.date(2026, 2, 26),
+            status="open",
+        )
+        answer_file = SimpleUploadedFile("answers.pdf", b"%PDF-1.4", content_type="application/pdf")
+
+        response = self.client.post(
+            "/api/exams/submissions/",
+            {"student_code": self.student.student_code, "exam": other_exam.id, "answer_file": answer_file},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["error"], "exam_not_available_for_student_level")
 
     def test_duplicate_submission_is_rejected(self):
         self.student.exam_submissions.create(

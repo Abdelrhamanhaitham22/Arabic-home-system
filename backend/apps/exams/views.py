@@ -18,7 +18,21 @@ ALLOWED_ANSWER_TYPES = {"application/pdf", "image/jpeg", "image/png"}
 
 class AvailableExamListView(APIView):
     def get(self, request):
-        exams = Exam.objects.filter(status="open").select_related("level").prefetch_related("sections")
+        student_code = str(request.query_params.get("student_code", "")).strip().upper()
+        if not student_code:
+            return Response(
+                {"error": "student_code_required", "message": "Enter your student code first."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        student = get_object_or_404(Student.objects.select_related("level"), student_code=student_code)
+        if not student.level_id:
+            return Response(
+                {"error": "student_level_required", "message": "Your level has not been assigned yet."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        exams = Exam.objects.filter(status="open", level_id=student.level_id).select_related(
+            "level"
+        ).prefetch_related("sections")
         return Response(AvailableExamSerializer(exams, many=True, context={"request": request}).data)
 
 
@@ -41,6 +55,11 @@ class ExamSubmissionCreateView(APIView):
         student_code = str(request.data.get("student_code", "")).strip().upper()
         student = get_object_or_404(Student, student_code=student_code)
         exam = get_object_or_404(Exam, id=request.data.get("exam"), status="open")
+        if not student.level_id or exam.level_id != student.level_id:
+            return Response(
+                {"error": "exam_not_available_for_student_level"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         answer_file = request.FILES.get("answer_file")
         if not answer_file:
             return Response({"error": "answer_file_required"}, status=status.HTTP_400_BAD_REQUEST)
