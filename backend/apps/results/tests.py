@@ -102,3 +102,28 @@ class ResultLookupApiTests(TestCase):
 
         with self.assertRaises(ValidationError):
             section_score.full_clean()
+
+    def test_submission_creates_draft_result_and_enters_review(self):
+        from apps.exams.models import ExamSection
+        from .models import ExamSubmission
+
+        ExamSection.objects.create(exam=self.exam, name="Reading", max_score=15, order=1)
+        submission = ExamSubmission.objects.create(student=self.student, exam=self.exam)
+
+        result, created = submission.create_draft_result()
+
+        self.assertTrue(created)
+        self.assertEqual(result.submission, submission)
+        self.assertEqual(result.score, 0)
+        self.assertEqual(submission.status, "under_review")
+
+    def test_restarting_review_reuses_existing_result(self):
+        from .models import ExamSubmission
+
+        submission = ExamSubmission.objects.create(student=self.student, exam=self.exam)
+        first_result, first_created = submission.create_draft_result()
+        second_result, second_created = submission.create_draft_result()
+
+        self.assertTrue(first_created)
+        self.assertFalse(second_created)
+        self.assertEqual(first_result.pk, second_result.pk)

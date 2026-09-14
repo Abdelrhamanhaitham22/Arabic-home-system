@@ -32,6 +32,17 @@ class ExamSubmission(models.Model):
     def __str__(self):
         return f"{self.student.student_code} - {self.exam.name}"
 
+    def create_draft_result(self):
+        result, created = Result.objects.get_or_create(
+            student=self.student,
+            exam=self.exam,
+            defaults={"submission": self, "score": 0},
+        )
+        if created:
+            self.status = "under_review"
+            self.save(update_fields=("status",))
+        return result, created
+
 
 class Result(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="results")
