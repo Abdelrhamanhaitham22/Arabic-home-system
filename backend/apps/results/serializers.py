@@ -17,4 +17,9 @@ class ResultItemSerializer(serializers.ModelSerializer):
 class ResultLookupSerializer(serializers.Serializer):
     student_name = serializers.CharField(source="full_name")
     student_code = serializers.CharField()
-    results = ResultItemSerializer(many=True)
+    results = serializers.SerializerMethodField()
+
+    def get_results(self, student):
+        published_results = self.context.get("published_results")
+        results = published_results if published_results is not None else student.results.filter(published=True)
+        return ResultItemSerializer(results, many=True).data

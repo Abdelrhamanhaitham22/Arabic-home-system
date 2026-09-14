@@ -26,8 +26,9 @@ class ResultLookupView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        response_data = ResultLookupSerializer(student).data
-        if not student.results.exists():
+        published_results = student.results.filter(published=True)
+        response_data = ResultLookupSerializer(student, context={"published_results": published_results}).data
+        if not published_results.exists():
             response_data["message"] = _(
                 "Your result has not been published yet. Please try again later."
             )

@@ -16,6 +16,13 @@ class Student(models.Model):
     phone_number = models.CharField(max_length=20)
     address = models.TextField()
     passport_number = models.CharField(max_length=50)
+    level = models.ForeignKey(
+        "exams.Level",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="students",
+    )
     preferred_language = models.CharField(
         max_length=5,
         choices=LANGUAGE_CHOICES,

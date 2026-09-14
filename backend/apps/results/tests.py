@@ -26,7 +26,7 @@ class ResultLookupApiTests(TestCase):
         )
 
     def test_lookup_with_result_returns_percentage_without_private_data(self):
-        Result.objects.create(student=self.student, exam=self.exam, score=120)
+        Result.objects.create(student=self.student, exam=self.exam, score=120, published=True)
 
         response = self.client.get(f"/api/results/{self.student.student_code}/")
 
@@ -52,3 +52,53 @@ class ResultLookupApiTests(TestCase):
 
         with self.assertRaises(ValidationError):
             result.full_clean()
+
+    def test_unpublished_result_is_hidden_from_public_lookup(self):
+        Result.objects.create(student=self.student, exam=self.exam, score=120)
+
+        response = self.client.get(f"/api/results/{self.student.student_code}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["results"], [])
+
+    def test_publishing_section_scores_calculates_total_and_marks_submission_reviewed(self):
+        from apps.exams.models import ExamSection
+        from .models import ExamSubmission, SectionScore
+
+        self.exam.max_score = 30
+        self.exam.save(update_fields=("max_score",))
+        reading = ExamSection.objects.create(exam=self.exam, name="Reading", max_score=15, order=1)
+        grammar = ExamSection.objects.create(exam=self.exam, name="Grammar", max_score=15, order=2)
+        submission = ExamSubmission.objects.create(student=self.student, exam=self.exam)
+        result = Result.objects.create(student=self.student, exam=self.exam, score=0, submission=submission)
+        SectionScore.objects.create(result=result, section=reading, score=12)
+        SectionScore.objects.create(result=result, section=grammar, score=14)
+
+        result.publish()
+        result.refresh_from_db()
+        submission.refresh_from_db()
+
+        self.assertEqual(result.score, 26)
+        self.assertTrue(result.published)
+        self.assertEqual(submission.status, "reviewed")
+        self.assertIsNotNone(submission.reviewed_at)
+
+    def test_publishing_incomplete_section_scores_is_rejected(self):
+        from apps.exams.models import ExamSection
+
+        ExamSection.objects.create(exam=self.exam, name="Reading", max_score=15, order=1)
+        result = Result.objects.create(student=self.student, exam=self.exam, score=0)
+
+        with self.assertRaises(ValidationError):
+            result.publish()
+
+    def test_section_score_above_section_limit_is_rejected(self):
+        from apps.exams.models import ExamSection
+        from .models import SectionScore
+
+        section = ExamSection.objects.create(exam=self.exam, name="Reading", max_score=15, order=1)
+        result = Result.objects.create(student=self.student, exam=self.exam, score=0)
+        section_score = SectionScore(result=result, section=section, score=16)
+
+        with self.assertRaises(ValidationError):
+            section_score.full_clean()
