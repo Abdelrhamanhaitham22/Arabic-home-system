@@ -41,6 +41,23 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
   .hero-visual { order: 3; }
 }
 
+.result-row { display: block; }
+.result-main { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.section-results { margin-top: 20px; padding: 16px; background: var(--mint); }
+.section-results .result-label { margin-bottom: 10px; }
+.section-result { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.section-result strong { color: var(--primary-dark); font-family: 'DM Mono'; font-weight: 500; }
+.section-result strong small { color: var(--muted); }
+.section-result em { grid-column: 1 / -1; color: var(--muted); font-size: 12px; font-style: normal; line-height: 1.5; }
+.teacher-feedback { margin-top: 18px; padding-inline-start: 14px; border-inline-start: 2px solid var(--amber); }
+.teacher-feedback .result-label { margin-bottom: 6px; }
+.teacher-feedback p:last-child { font-family: inherit; font-size: 13px; line-height: 1.6; }
+
+@media (max-width: 760px) {
+  .result-main { align-items: start; flex-direction: column; }
+  .result-main .score { width: 100%; justify-content: space-between; }
+}
+
 .exams-page { max-width: 980px; }
 .exam-list { display: grid; gap: var(--space-4); margin-top: var(--space-6); }
 .exam-card { padding: var(--space-4); border: 1px solid var(--line); background: var(--mint); }

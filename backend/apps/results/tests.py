@@ -34,6 +34,56 @@ class ResultLookupApiTests(TestCase):
         self.assertEqual(response.data["results"][0]["percentage"], 60.0)
         self.assertNotIn("passport_number", response.data)
 
+    def test_lookup_returns_published_sections_and_teacher_feedback(self):
+        from apps.exams.models import ExamSection
+        from .models import SectionScore
+
+        self.exam.max_score = 30
+        self.exam.save(update_fields=("max_score",))
+        reading = ExamSection.objects.create(exam=self.exam, name="Reading", max_score=15, order=1)
+        grammar = ExamSection.objects.create(exam=self.exam, name="Grammar", max_score=15, order=2)
+        result = Result.objects.create(
+            student=self.student,
+            exam=self.exam,
+            score=26,
+            published=True,
+            teacher_notes="Strong reading comprehension.",
+        )
+        SectionScore.objects.create(result=result, section=reading, score=12, teacher_comment="Good work.")
+        SectionScore.objects.create(result=result, section=grammar, score=14)
+
+        response = self.client.get(f"/api/results/{self.student.student_code}/")
+
+        result_data = response.data["results"][0]
+        self.assertIsNone(result_data["level"])
+        self.assertEqual(result_data["teacher_feedback"], "Strong reading comprehension.")
+        self.assertEqual(
+            result_data["sections"],
+            [
+                {"name": "Reading", "score": 12, "max_score": 15, "comment": "Good work."},
+                {"name": "Grammar", "score": 14, "max_score": 15, "comment": ""},
+            ],
+        )
+
+    def test_lookup_excludes_sections_from_other_exams(self):
+        from apps.exams.models import ExamSection
+        from .models import SectionScore
+
+        visible_section = ExamSection.objects.create(exam=self.exam, name="Reading", max_score=15, order=1)
+        other_exam = Exam.objects.create(
+            name="Other Exam",
+            max_score=10,
+            exam_date=datetime.date(2026, 9, 8),
+        )
+        unrelated_section = ExamSection.objects.create(exam=other_exam, name="Hidden", max_score=10, order=1)
+        result = Result.objects.create(student=self.student, exam=self.exam, score=5, published=True)
+        SectionScore.objects.create(result=result, section=unrelated_section, score=5)
+        SectionScore.objects.create(result=result, section=visible_section, score=5)
+
+        response = self.client.get(f"/api/results/{self.student.student_code}/")
+
+        self.assertEqual([section["name"] for section in response.data["results"][0]["sections"]], ["Reading"])
+
     def test_lookup_without_result_explains_result_is_pending(self):
         response = self.client.get(f"/api/results/{self.student.student_code}/")
 

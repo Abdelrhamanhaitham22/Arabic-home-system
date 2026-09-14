@@ -1,16 +1,16 @@
+from django.db.models import Prefetch
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django_ratelimit.decorators import ratelimit
-from rest_framework.permissions import IsAdminUser
 from rest_framework import status
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from apps.students.models import Student
 
-from .models import ExamSubmission
+from .models import ExamSubmission, SectionScore
 from .serializers import ResultLookupSerializer
 
 
@@ -18,9 +18,7 @@ from .serializers import ResultLookupSerializer
 class ResultLookupView(APIView):
     def get(self, request, student_code):
         try:
-            student = Student.objects.prefetch_related("results__exam").get(
-                student_code=student_code
-            )
+            student = Student.objects.get(student_code=student_code)
         except Student.DoesNotExist:
             return Response(
                 {
@@ -30,7 +28,15 @@ class ResultLookupView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        published_results = student.results.filter(published=True)
+        published_results = student.results.filter(published=True).select_related(
+            "exam__level"
+        ).prefetch_related(
+            Prefetch(
+                "section_scores",
+                queryset=SectionScore.objects.select_related("section"),
+                to_attr="prefetched_section_scores",
+            )
+        )
         response_data = ResultLookupSerializer(student, context={"published_results": published_results}).data
         if not published_results.exists():
             response_data["message"] = _(
