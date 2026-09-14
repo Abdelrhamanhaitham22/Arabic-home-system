@@ -112,3 +112,11 @@ class ExamSubmissionApiTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["error"], "unsupported_answer_file_type")
+
+    def test_missing_exam_file_returns_not_found(self):
+        self.exam.exam_file.name = "exams/missing.pdf"
+        self.exam.save(update_fields=("exam_file",))
+
+        response = self.client.get(f"/api/exams/{self.exam.id}/file/")
+
+        self.assertEqual(response.status_code, 404)

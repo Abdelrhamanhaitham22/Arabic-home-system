@@ -27,7 +27,11 @@ class ExamFileView(APIView):
         exam = get_object_or_404(Exam, id=exam_id, status="open")
         if not exam.exam_file:
             raise Http404
-        return FileResponse(exam.exam_file.open("rb"), content_type="application/pdf")
+        try:
+            exam_file = exam.exam_file.open("rb")
+        except FileNotFoundError as error:
+            raise Http404("The exam file is temporarily unavailable.") from error
+        return FileResponse(exam_file, content_type="application/pdf")
 
 
 class ExamSubmissionCreateView(APIView):
