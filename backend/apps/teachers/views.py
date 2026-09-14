@@ -1,4 +1,5 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
@@ -11,6 +12,9 @@ from rest_framework.views import APIView
 
 from apps.results.models import ExamSubmission, SectionScore
 
+from .models import TeacherProfile
+
+
 def teacher_profile_for(request):
     return getattr(request.user, "teacher_profile", None)
 
@@ -21,6 +25,29 @@ class TeacherCsrfView(APIView):
     @method_decorator(ensure_csrf_cookie)
     def get(self, request):
         return Response({"detail": "CSRF cookie set."})
+
+
+class TeacherSignupView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        username = str(request.data.get("username", "")).strip()
+        password = request.data.get("password", "")
+        if not username or not password:
+            return Response({"detail": "Username and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+        user_model = get_user_model()
+        if user_model.objects.filter(username__iexact=username).exists():
+            return Response({"detail": "This username is already registered."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            validate_password(password)
+        except ValidationError as error:
+            return Response({"detail": error.messages}, status=status.HTTP_400_BAD_REQUEST)
+        user = user_model.objects.create_user(username=username, password=password, is_active=True)
+        TeacherProfile.objects.create(user=user)
+        return Response(
+            {"detail": "Your teacher account was created and is waiting for administrator approval."},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class TeacherLoginView(APIView):
@@ -35,6 +62,11 @@ class TeacherLoginView(APIView):
             return Response(
                 {"detail": "Invalid teacher credentials."},
                 status=status.HTTP_401_UNAUTHORIZED,
+            )
+        if not profile.is_approved:
+            return Response(
+                {"detail": "Your account is waiting for administrator approval."},
+                status=status.HTTP_403_FORBIDDEN,
             )
         login(request, user)
         return Response({"username": user.get_username(), "levels": list(profile.levels.values_list("name", flat=True))})

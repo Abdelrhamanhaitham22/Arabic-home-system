@@ -45,7 +45,7 @@ class TeacherPortalTests(TestCase):
         )
         user_model = get_user_model()
         self.teacher_user = user_model.objects.create_user(username="teacher", password="secret")
-        self.teacher = TeacherProfile.objects.create(user=self.teacher_user)
+        self.teacher = TeacherProfile.objects.create(user=self.teacher_user, is_approved=True)
         self.teacher.levels.add(self.level_one)
         self.admin_user = user_model.objects.create_user(username="admin", password="secret")
 
@@ -68,6 +68,29 @@ class TeacherPortalTests(TestCase):
         response = self.client.post("/api/teachers/login/", {"username": "admin", "password": "secret"})
 
         self.assertEqual(response.status_code, 401)
+
+    def test_teacher_signup_creates_pending_profile(self):
+        response = self.client.post(
+            "/api/teachers/signup/",
+            {"username": "newteacher", "password": "StrongPassword123!"},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        profile = TeacherProfile.objects.get(user__username="newteacher")
+        self.assertFalse(profile.is_approved)
+        login_response = self.client.post(
+            "/api/teachers/login/",
+            {"username": "newteacher", "password": "StrongPassword123!"},
+        )
+        self.assertEqual(login_response.status_code, 403)
+
+    def test_approved_teacher_can_login(self):
+        response = self.client.post(
+            "/api/teachers/login/",
+            {"username": "teacher", "password": "secret"},
+        )
+
+        self.assertEqual(response.status_code, 200)
 
     def test_teacher_submissions_are_limited_to_assigned_levels(self):
         self.login()

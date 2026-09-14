@@ -5,8 +5,9 @@ from .models import TeacherProfile
 
 @admin.register(TeacherProfile)
 class TeacherProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "assigned_levels")
+    list_display = ("user", "is_approved", "assigned_levels")
     search_fields = ("user__username", "user__first_name", "user__last_name")
+    list_filter = ("is_approved",)
     filter_horizontal = ("levels",)
 
     @admin.display(description="Assigned levels")

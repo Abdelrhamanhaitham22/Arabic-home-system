@@ -9,6 +9,7 @@ class TeacherProfile(models.Model):
         related_name="teacher_profile",
     )
     levels = models.ManyToManyField("exams.Level", related_name="teachers", blank=True)
+    is_approved = models.BooleanField(default=False)
 
     def __str__(self):
         return self.user.get_username()
