@@ -60,6 +60,9 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
 
 .exams-page { max-width: 980px; }
 .exam-lookup-form { max-width: 720px; }
+.student-level-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: var(--space-4); padding: 16px 18px; border-inline-start: 3px solid var(--primary); background: var(--mint); }
+.student-level-card span { color: var(--muted); font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.student-level-card strong { color: var(--primary-dark); font-size: 18px; }
 .exam-list { display: grid; gap: var(--space-4); margin-top: var(--space-6); }
 .exam-card { padding: var(--space-4); border: 1px solid var(--line); background: var(--mint); }
 .exam-card-head { display: flex; align-items: start; justify-content: space-between; gap: var(--space-4); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
@@ -78,6 +81,7 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
 
 @media (max-width: 760px) {
   .exam-lookup-form { margin-top: var(--space-5); }
+  .student-level-card { align-items: start; flex-direction: column; }
   .exam-card-head { flex-direction: column; }
   .exam-submit-form { grid-template-columns: 1fr; }
   .exam-submit-form .submit-button, .exam-submit-form .form-error { grid-column: auto; }
