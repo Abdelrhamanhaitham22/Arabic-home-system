@@ -38,7 +38,7 @@ function isResultResponse(body: ApiObject): body is ResultResponse {
 
 const copy = {
   ar: {
-    home: 'الرئيسية', register: 'التسجيل', exams: 'الاختبارات', results: 'النتائج', arabic: 'العربية', russian: 'Русский',
+    home: 'الرئيسية', register: 'التسجيل', exams: 'الاختبارات', results: 'النتائج', teacher: 'المعلم', arabic: 'العربية', russian: 'Русский',
     eyebrow: 'بوابتك إلى التعلّم', hero: 'نتيجتك.\nخطوتك التالية.', heroBody: 'سجّل بياناتك مرة واحدة، واحتفظ برمزك الدائم للوصول إلى نتائج اختباراتك في أي وقت.',
     start: 'ابدأ التسجيل', check: 'تحقق من نتيجتك', trust: 'خدمة بسيطة، واضحة، ومصممة لتكون معك في كل خطوة.', resultsBody: 'أدخل رمزك الطلابي لرؤية نتائج الاختبارات المنشورة ومتابعة تقدمك.',
     registerTitle: 'أنشئ ملفك الطلابي', registerBody: 'أدخل بياناتك كما تظهر في وثائقك. سنرسل لك رمزاً دائماً بعد التسجيل.',
@@ -50,7 +50,7 @@ const copy = {
     examsTitle: 'اختباراتك المتاحة', examsBody: 'أدخل رمز الطالب لرؤية الاختبارات المفتوحة لمستواك، ثم ارفع ملف إجابتك للمراجعة.', loadExams: 'عرض اختباراتي', loadingExams: 'جارٍ تحميل الاختبارات…', assignedLevel: 'مستواك الدراسي', levelRequired: 'لم يُعيّن مستواك بعد. تواصل مع الإدارة لتعيين المستوى.', studentCodeRequired: 'أدخل رمز الطالب أولاً.', noExams: 'لا توجد اختبارات مفتوحة لمستواك حالياً', examFile: 'تحميل ورقة الاختبار', maxScore: 'الدرجة الكاملة', sections: 'الأقسام', studentCode: 'رمز الطالب', answerFile: 'ملف الإجابة', chooseFile: 'اختر ملفاً', submitExam: 'إرسال الإجابة', submitting: 'جارٍ الإرسال…', submitted: 'تم إرسال إجابتك', submittedBody: 'سيقوم المعلم بمراجعة الملف. احتفظ برمز الطالب لمتابعة النتيجة.', fileTypes: 'PDF أو JPG أو PNG، بحد أقصى 10 ميجابايت', duplicate: 'لقد أرسلت إجابة لهذا الاختبار من قبل.', invalidFile: 'نوع الملف غير مدعوم أو حجمه أكبر من الحد المسموح.', backToExams: 'العودة إلى الاختبارات',
   },
   ru: {
-    home: 'Главная', register: 'Регистрация', exams: 'Экзамены', results: 'Результаты', arabic: 'العربية', russian: 'Русский',
+    home: 'Главная', register: 'Регистрация', exams: 'Экзамены', results: 'Результаты', teacher: 'Учитель', arabic: 'العربية', russian: 'Русский',
     eyebrow: 'Ваш путь к обучению', hero: 'Ваш результат.\nВаш следующий шаг.', heroBody: 'Зарегистрируйтесь один раз и сохраните постоянный код для доступа к результатам экзаменов в любое время.',
     start: 'Начать регистрацию', check: 'Проверить результат', trust: 'Простой и понятный сервис, который сопровождает вас на каждом шаге.', resultsBody: 'Введите код студента, чтобы увидеть опубликованные результаты и следить за прогрессом.',
     registerTitle: 'Создайте профиль студента', registerBody: 'Введите данные так, как они указаны в ваших документах. После регистрации вы получите постоянный код.',
@@ -74,7 +74,7 @@ type Copy = (typeof copy)[Language]
 
 function Header({ language, setLanguage, t }: { language: Language; setLanguage: (language: Language) => void; t: Copy }) {
   const location = useLocation()
-  return <header className="site-header"><Link className="brand" to="/"><img src={logo} alt="بيت العربية" /><span><strong>بيت العربية</strong><small>Arabic Language Center</small></span></Link><nav aria-label="Main navigation"><Link className={location.pathname === '/' ? 'active' : ''} to="/">{t.home}</Link><Link className={location.pathname === '/register' ? 'active' : ''} to="/register">{t.register}</Link><Link className={location.pathname === '/exams' ? 'active' : ''} to="/exams">{t.exams}</Link><Link className={location.pathname === '/results' ? 'active' : ''} to="/results">{t.results}</Link></nav><div className="language-switcher" aria-label="Language switcher"><button className={language === 'ar' ? 'selected' : ''} onClick={() => setLanguage('ar')}>{t.arabic}</button><span>/</span><button className={language === 'ru' ? 'selected' : ''} onClick={() => setLanguage('ru')}>{t.russian}</button></div></header>
+  return <header className="site-header"><Link className="brand" to="/"><img src={logo} alt="بيت العربية" /><span><strong>بيت العربية</strong><small>Arabic Language Center</small></span></Link><nav aria-label="Main navigation"><Link className={location.pathname === '/' ? 'active' : ''} to="/">{t.home}</Link><Link className={location.pathname === '/register' ? 'active' : ''} to="/register">{t.register}</Link><Link className={location.pathname === '/exams' ? 'active' : ''} to="/exams">{t.exams}</Link><Link className={location.pathname === '/results' ? 'active' : ''} to="/results">{t.results}</Link><Link className={location.pathname === '/teacher' ? 'active' : ''} to="/teacher">{t.teacher}</Link></nav><div className="language-switcher" aria-label="Language switcher"><button className={language === 'ar' ? 'selected' : ''} onClick={() => setLanguage('ar')}>{t.arabic}</button><span>/</span><button className={language === 'ru' ? 'selected' : ''} onClick={() => setLanguage('ru')}>{t.russian}</button></div></header>
 }
 
 function Home({ t }: { t: Copy }) {
