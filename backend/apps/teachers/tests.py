@@ -96,6 +96,12 @@ class TeacherPortalTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_teacher_csrf_endpoint_returns_token(self):
+        response = self.client.get("/api/teachers/csrf/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["csrf_token"]), 64)
+
     def test_teacher_submissions_are_limited_to_assigned_levels(self):
         self.login()
 

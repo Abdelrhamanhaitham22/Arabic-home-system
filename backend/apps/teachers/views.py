@@ -3,6 +3,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
+from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
@@ -25,7 +26,7 @@ class TeacherCsrfView(APIView):
 
     @method_decorator(ensure_csrf_cookie)
     def get(self, request):
-        return Response({"detail": "CSRF cookie set."})
+        return Response({"detail": "CSRF cookie set.", "csrf_token": get_token(request)})
 
 
 class TeacherSignupView(APIView):
