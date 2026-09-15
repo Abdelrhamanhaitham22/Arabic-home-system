@@ -1,9 +1,12 @@
 from rest_framework import serializers
 
 from .models import Student
+from apps.exams.models import Level
 
 
 class StudentRegistrationSerializer(serializers.ModelSerializer):
+    level_id = serializers.PrimaryKeyRelatedField(source="level", queryset=Level.objects.all(), write_only=True)
+
     class Meta:
         model = Student
         fields = (
@@ -11,6 +14,7 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
             "phone_number",
             "address",
             "passport_number",
+            "level_id",
             "preferred_language",
         )
 
@@ -24,3 +28,8 @@ class StudentLevelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = ("student_code", "full_name", "level")
+
+
+class LevelOptionSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()

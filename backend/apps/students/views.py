@@ -6,8 +6,10 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.exams.models import Level
+
 from .models import Student
-from .serializers import StudentLevelSerializer, StudentRegistrationSerializer
+from .serializers import LevelOptionSerializer, StudentLevelSerializer, StudentRegistrationSerializer
 
 
 @method_decorator(ratelimit(key="ip", rate="10/h", method="POST", block=True), name="dispatch")
@@ -24,6 +26,12 @@ class RegisterStudentView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class StudentLevelOptionsView(APIView):
+    def get(self, request):
+        levels = Level.objects.order_by("order", "name").values("id", "name")
+        return Response(LevelOptionSerializer(levels, many=True).data)
 
 
 @method_decorator(ratelimit(key="ip", rate="60/h", method="GET", block=True), name="dispatch")
