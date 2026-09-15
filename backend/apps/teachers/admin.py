@@ -1,6 +1,20 @@
 from django.contrib import admin
+from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin
 
 from .models import TeacherProfile
+
+
+User = get_user_model()
+
+
+class NonTeacherUserAdmin(UserAdmin):
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(teacher_profile__isnull=True)
+
+
+admin.site.unregister(User)
+admin.site.register(User, NonTeacherUserAdmin)
 
 
 @admin.register(TeacherProfile)

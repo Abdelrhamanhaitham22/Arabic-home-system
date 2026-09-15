@@ -1,8 +1,9 @@
 import datetime
 
 from django.contrib.auth import get_user_model
+from django.contrib import admin
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from rest_framework.test import APIClient
 
 from apps.exams.models import Exam, ExamSection, Level
@@ -101,6 +102,14 @@ class TeacherPortalTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["csrf_token"]), 64)
+
+    def test_teacher_users_are_not_in_generic_admin_user_table(self):
+        user_admin = admin.site._registry[get_user_model()]
+
+        request = RequestFactory().get("/admin/auth/user/")
+        usernames = set(user_admin.get_queryset(request).values_list("username", flat=True))
+
+        self.assertNotIn(self.teacher_user.username, usernames)
 
     def test_teacher_submissions_are_limited_to_assigned_levels(self):
         self.login()
