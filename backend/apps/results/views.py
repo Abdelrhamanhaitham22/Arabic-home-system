@@ -17,8 +17,9 @@ from .serializers import ResultLookupSerializer
 @method_decorator(ratelimit(key="ip", rate="60/h", method="GET", block=True), name="dispatch")
 class ResultLookupView(APIView):
     def get(self, request, student_code):
+        normalized_code = student_code.strip().upper()
         try:
-            student = Student.objects.get(student_code=student_code)
+            student = Student.objects.get(student_code=normalized_code)
         except Student.DoesNotExist:
             return Response(
                 {

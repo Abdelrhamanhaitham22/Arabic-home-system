@@ -1,5 +1,3 @@
-import datetime
-
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -28,7 +26,7 @@ class StudentRegistrationApiTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertRegex(response.data["student_code"], rf"^ST{datetime.date.today().year}\d{{5}}$")
+        self.assertRegex(response.data["student_code"], r"^ST-[A-Z2-9]{12}$")
         self.assertNotIn("passport_number", response.data)
         self.assertEqual(Student.objects.count(), 1)
         self.assertEqual(Student.objects.get().level, self.level_five)
@@ -93,6 +91,25 @@ class StudentRegistrationApiTests(TestCase):
         self.assertEqual(response.data["full_name"], "Ahmed Mohamed")
         self.assertNotIn("passport_number", response.data)
 
+    def test_codes_are_random_and_unique(self):
+        first = Student.objects.create(
+            full_name="First Student",
+            phone_number="+20101234567",
+            address="Alexandria, Egypt",
+            passport_number="P1234567",
+            level=self.level_five,
+        )
+        second = Student.objects.create(
+            full_name="Second Student",
+            phone_number="+20101234568",
+            address="Alexandria, Egypt",
+            passport_number="P1234568",
+            level=self.level_five,
+        )
+
+        self.assertRegex(first.student_code, r"^ST-[A-Z2-9]{12}$")
+        self.assertNotEqual(first.student_code, second.student_code)
+
     def test_level_lookup_returns_null_for_unassigned_student(self):
         student = Student.objects.create(
             full_name="Ahmed Mohamed",
@@ -101,7 +118,7 @@ class StudentRegistrationApiTests(TestCase):
             passport_number="P1234567",
         )
 
-        response = self.client.get(f"/api/students/{student.student_code}/level/")
+        response = self.client.get(f"/api/students/{student.student_code.lower()}/level/")
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.data["level"])

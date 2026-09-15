@@ -1,18 +1,18 @@
-import datetime
+import secrets
 
-from django.db import transaction
+
+STUDENT_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+STUDENT_CODE_RANDOM_LENGTH = 12
 
 
 def generate_student_code() -> str:
     from .models import Student
 
-    prefix = f"ST{datetime.date.today().year}"
-    with transaction.atomic():
-        latest_student = (
-            Student.objects.select_for_update()
-            .filter(student_code__startswith=prefix)
-            .order_by("-student_code")
-            .first()
+    while True:
+        random_part = "".join(
+            secrets.choice(STUDENT_CODE_ALPHABET)
+            for _ in range(STUDENT_CODE_RANDOM_LENGTH)
         )
-        next_sequence = int(latest_student.student_code[6:]) + 1 if latest_student else 1
-        return f"{prefix}{next_sequence:05d}"
+        code = f"ST-{random_part}"
+        if not Student.objects.filter(student_code=code).exists():
+            return code
