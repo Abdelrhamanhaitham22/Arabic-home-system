@@ -91,13 +91,22 @@ class TeacherMeView(APIView):
         profile = teacher_profile_for(request)
         if profile is None:
             return Response({"detail": "Teacher access required."}, status=status.HTTP_403_FORBIDDEN)
+        selected_level_id = request.query_params.get("level_id")
+        assigned_levels = profile.levels.all()
+        if selected_level_id:
+            if not selected_level_id.isdigit() or not profile.levels.filter(id=selected_level_id).exists():
+                return Response(
+                    {"detail": "You can only filter by an assigned level."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            assigned_levels = assigned_levels.filter(id=selected_level_id)
         submissions = (
-            ExamSubmission.objects.filter(exam__level__in=profile.levels.all())
+            ExamSubmission.objects.filter(exam__level__in=assigned_levels)
             .select_related("student", "student__level", "exam", "exam__level")
             .prefetch_related("result__section_scores__section")
             .order_by("-submitted_at")
         )
-        students = Student.objects.filter(level__in=profile.levels.all()).select_related("level").order_by("full_name")
+        students = Student.objects.filter(level__in=assigned_levels).select_related("level").order_by("full_name")
         return Response(
             {
                 "username": request.user.get_username(),

@@ -120,6 +120,23 @@ class TeacherPortalTests(TestCase):
         self.assertEqual([item["id"] for item in response.data["submissions"]], [self.submission_one.id])
         self.assertEqual([item["student_code"] for item in response.data["students"]], [self.student_one.student_code])
 
+    def test_teacher_can_filter_submissions_and_students_by_assigned_level(self):
+        self.teacher.levels.add(self.level_two)
+        self.login()
+
+        response = self.client.get(f"/api/teachers/me/?level_id={self.level_two.id}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item["id"] for item in response.data["submissions"]], [self.submission_two.id])
+        self.assertEqual([item["student_code"] for item in response.data["students"]], [self.student_two.student_code])
+
+    def test_teacher_cannot_filter_by_unassigned_level(self):
+        self.login()
+
+        response = self.client.get(f"/api/teachers/me/?level_id={self.level_two.id}")
+
+        self.assertEqual(response.status_code, 400)
+
     def test_teacher_cannot_open_unassigned_answer_file(self):
         self.login()
 
