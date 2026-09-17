@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from rest_framework import serializers
 
 from .models import Student
@@ -18,8 +19,21 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
             "preferred_language",
         )
 
+    def validate_passport_number(self, passport_number):
+        normalized_passport = passport_number.strip().upper()
+        if Student.objects.filter(passport_number__iexact=normalized_passport).exists():
+            raise serializers.ValidationError("A student with this passport number already exists.")
+        return normalized_passport
+
     def create(self, validated_data):
-        return Student.objects.create(**validated_data)
+        try:
+            return Student.objects.create(**validated_data)
+        except IntegrityError as error:
+            if "passport_number" not in str(error):
+                raise
+            raise serializers.ValidationError(
+                {"passport_number": "A student with this passport number already exists."}
+            ) from error
 
 
 class StudentLevelSerializer(serializers.ModelSerializer):

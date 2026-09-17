@@ -15,7 +15,7 @@ class Student(models.Model):
     full_name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=20)
     address = models.TextField()
-    passport_number = models.CharField(max_length=50)
+    passport_number = models.CharField(max_length=50, unique=True)
     level = models.ForeignKey(
         "exams.Level",
         on_delete=models.SET_NULL,

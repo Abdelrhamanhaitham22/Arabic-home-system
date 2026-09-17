@@ -47,6 +47,31 @@ class StudentRegistrationApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("level_id", response.data)
 
+    def test_registration_rejects_duplicate_passport_number(self):
+        payload = {
+            "full_name": "Ahmed Mohamed",
+            "phone_number": "+20101234567",
+            "address": "Alexandria, Egypt",
+            "passport_number": "P1234567",
+            "level_id": self.level_five.id,
+            "preferred_language": "ar",
+        }
+        first_response = self.client.post("/api/students/register/", payload, format="json")
+        duplicate_payload = {
+            **payload,
+            "full_name": "Another Student",
+            "passport_number": " p1234567 ",
+        }
+
+        duplicate_response = self.client.post(
+            "/api/students/register/", duplicate_payload, format="json"
+        )
+
+        self.assertEqual(first_response.status_code, 201)
+        self.assertEqual(duplicate_response.status_code, 400)
+        self.assertIn("passport_number", duplicate_response.data)
+        self.assertEqual(Student.objects.count(), 1)
+
     def test_level_options_are_ordered(self):
         response = self.client.get("/api/students/levels/")
 
