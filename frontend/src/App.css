@@ -65,6 +65,11 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
 .student-level-card strong { color: var(--primary-dark); font-size: 18px; }
 .teacher-page { max-width: 1040px; padding: var(--space-7) 0; }
 .teacher-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: var(--space-5); border-bottom: 1px solid var(--ink); }
+.teacher-level-picker { display: grid; gap: 18px; margin-top: var(--space-5); padding: 22px; border: 1px solid var(--line); background: white; }
+.teacher-level-picker h2 { margin: 0; font-size: 20px; }
+.teacher-level-options { display: flex; flex-wrap: wrap; gap: 10px; }
+.teacher-level-option { min-height: 44px; padding: 0 18px; border: 1px solid var(--line); border-radius: 2px; color: var(--ink); background: white; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; transition: border-color .2s ease, background .2s ease, color .2s ease; }
+.teacher-level-option:hover, .teacher-level-option.selected { border-color: var(--primary); color: white; background: var(--primary); }
 .teacher-login-form { display: grid; gap: var(--space-4); max-width: 520px; margin-top: var(--space-6); }
 .teacher-mode-button { justify-self: start; }
 .success-notice { border-color: oklch(0.75 0.08 150); background: var(--mint); }
@@ -88,6 +93,9 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
 @media (max-width: 760px) {
   .teacher-page { padding: var(--space-6) 0; }
   .teacher-heading, .teacher-submission-head { align-items: start; flex-direction: column; }
+  .teacher-level-picker { padding: 18px; }
+  .teacher-level-options { display: grid; grid-template-columns: 1fr 1fr; }
+  .teacher-level-option { width: 100%; padding: 0 10px; }
   .teacher-score-grid { grid-template-columns: 1fr; }
   .teacher-overview, .teacher-student-list { grid-template-columns: 1fr; }
   .teacher-actions .button { width: 100%; }
