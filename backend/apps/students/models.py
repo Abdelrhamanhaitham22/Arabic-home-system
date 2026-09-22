@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import RegexValidator
 
 from .services import generate_student_code
 
@@ -7,10 +8,11 @@ class Student(models.Model):
     LANGUAGE_CHOICES = [("ar", "العربية"), ("ru", "Русский")]
 
     student_code = models.CharField(
-        max_length=20,
+        max_length=8,
         unique=True,
         db_index=True,
         editable=False,
+        validators=[RegexValidator(r"^\d{8}$", "Student code must contain exactly 8 digits.")],
     )
     full_name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=20)

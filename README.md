@@ -4,7 +4,7 @@ Bilingual (Arabic/Russian) web platform for student registration and exam result
 
 ## Overview
 
-- **Students** register for free and receive a permanent unique code (e.g., `ST202600001`).
+- **Students** register for free and receive a permanent unique 8-digit numeric code (e.g., `12345678`).
 - **Students** use their code on the Results page to look up exam scores.
 - **Administrators** manage students, exams, and results via Django's built-in admin dashboard (`/admin/`).
 

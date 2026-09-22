@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -26,7 +28,7 @@ class StudentRegistrationApiTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertRegex(response.data["student_code"], r"^ST-[A-Z2-9]{12}$")
+        self.assertRegex(response.data["student_code"], r"^\d{8}$")
         self.assertNotIn("passport_number", response.data)
         self.assertEqual(Student.objects.count(), 1)
         self.assertEqual(Student.objects.get().level, self.level_five)
@@ -132,8 +134,20 @@ class StudentRegistrationApiTests(TestCase):
             level=self.level_five,
         )
 
-        self.assertRegex(first.student_code, r"^ST-[A-Z2-9]{12}$")
+        self.assertRegex(first.student_code, r"^\d{8}$")
         self.assertNotEqual(first.student_code, second.student_code)
+
+    def test_generated_code_can_include_a_leading_zero(self):
+        with mock.patch("apps.students.services.secrets.randbelow", return_value=1234567):
+            student = Student.objects.create(
+                full_name="Leading Zero Student",
+                phone_number="+20101234569",
+                address="Cairo, Egypt",
+                passport_number="P1234570",
+                level=self.level_five,
+            )
+
+        self.assertEqual(student.student_code, "01234567")
 
     def test_level_lookup_returns_null_for_unassigned_student(self):
         student = Student.objects.create(

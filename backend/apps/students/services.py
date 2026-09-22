@@ -1,18 +1,14 @@
 import secrets
 
 
-STUDENT_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-STUDENT_CODE_RANDOM_LENGTH = 12
+STUDENT_CODE_LENGTH = 8
+STUDENT_CODE_MAX = 10 ** STUDENT_CODE_LENGTH
 
 
 def generate_student_code() -> str:
     from .models import Student
 
     while True:
-        random_part = "".join(
-            secrets.choice(STUDENT_CODE_ALPHABET)
-            for _ in range(STUDENT_CODE_RANDOM_LENGTH)
-        )
-        code = f"ST-{random_part}"
+        code = f"{secrets.randbelow(STUDENT_CODE_MAX):0{STUDENT_CODE_LENGTH}d}"
         if not Student.objects.filter(student_code=code).exists():
             return code
