@@ -1,5 +1,7 @@
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 
 class Level(models.Model):
@@ -33,7 +35,22 @@ class Exam(models.Model):
     exam_date = models.DateField()
     exam_file = models.FileField(upload_to="exams/", blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
+    opens_at = models.DateTimeField(null=True, blank=True)
+    closes_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if self.opens_at and self.closes_at and self.closes_at <= self.opens_at:
+            raise ValidationError({"closes_at": "Closing time must be after opening time."})
+
+    @property
+    def is_submission_open(self):
+        if self.status != "open":
+            return False
+        now = timezone.now()
+        return (not self.opens_at or now >= self.opens_at) and (
+            not self.closes_at or now <= self.closes_at
+        )
 
     def __str__(self):
         return f"{self.name} ({self.exam_date})"

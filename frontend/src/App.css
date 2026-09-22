@@ -66,6 +66,7 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
 .teacher-page { max-width: 1040px; padding: var(--space-7) 0; }
 .teacher-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: var(--space-5); border-bottom: 1px solid var(--ink); }
 .teacher-level-picker { display: grid; gap: 18px; margin-top: var(--space-5); padding: 22px; border: 1px solid var(--line); background: white; }
+.exam-schedule { display: grid; gap: 6px; margin: 18px 0; padding: 12px 14px; border-inline-start: 3px solid var(--primary); background: var(--soft); font-size: 13px; }
 .teacher-level-picker h2 { margin: 0; font-size: 20px; }
 .teacher-level-options { display: flex; flex-wrap: wrap; gap: 10px; }
 .teacher-level-option { min-height: 44px; padding: 0 18px; border: 1px solid var(--line); border-radius: 2px; color: var(--ink); background: white; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; transition: border-color .2s ease, background .2s ease, color .2s ease; }

@@ -1,9 +1,11 @@
 import datetime
 from io import StringIO
+from datetime import timedelta
 
 from django.core.management import call_command
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.students.models import Student
@@ -156,6 +158,51 @@ class ExamSubmissionApiTests(TestCase):
 
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.data["error"], "duplicate_submission")
+
+    def test_scheduled_exam_is_hidden_before_opening(self):
+        self.exam.opens_at = timezone.now() + timedelta(hours=1)
+        self.exam.closes_at = timezone.now() + timedelta(days=1)
+        self.exam.save(update_fields=("opens_at", "closes_at"))
+
+        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_scheduled_exam_is_hidden_after_closing(self):
+        self.exam.opens_at = timezone.now() - timedelta(days=1)
+        self.exam.closes_at = timezone.now() - timedelta(hours=1)
+        self.exam.save(update_fields=("opens_at", "closes_at"))
+
+        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_submission_is_rejected_after_scheduled_closing(self):
+        self.exam.opens_at = timezone.now() - timedelta(days=1)
+        self.exam.closes_at = timezone.now() - timedelta(hours=1)
+        self.exam.save(update_fields=("opens_at", "closes_at"))
+        answer_file = SimpleUploadedFile("answers.pdf", b"%PDF-1.4", content_type="application/pdf")
+
+        response = self.client.post(
+            "/api/exams/submissions/",
+            {"student_code": self.student.student_code, "exam": self.exam.id, "answer_file": answer_file},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["error"], "exam_submission_closed")
+
+    def test_scheduled_exam_is_available_inside_window(self):
+        self.exam.opens_at = timezone.now() - timedelta(hours=1)
+        self.exam.closes_at = timezone.now() + timedelta(hours=1)
+        self.exam.save(update_fields=("opens_at", "closes_at"))
+
+        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
 
     def test_unsupported_answer_file_is_rejected(self):
         answer_file = SimpleUploadedFile("answers.txt", b"not an answer sheet", content_type="text/plain")

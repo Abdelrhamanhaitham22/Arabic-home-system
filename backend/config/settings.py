@@ -96,7 +96,7 @@ else:
 
 LANGUAGE_CODE = "ar"
 LANGUAGES = [("ar", "Arabic"), ("ru", "Russian")]
-TIME_ZONE = "UTC"
+TIME_ZONE = "Africa/Cairo"
 USE_I18N = True
 USE_TZ = True
 LOCALE_PATHS = [BASE_DIR / "locale"]

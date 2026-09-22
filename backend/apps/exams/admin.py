@@ -25,7 +25,7 @@ class ExamSectionInline(admin.TabularInline):
 
 @admin.register(Exam)
 class ExamAdmin(admin.ModelAdmin):
-    list_display = ("name", "level", "max_score", "status", "exam_date", "created_at")
+    list_display = ("name", "level", "max_score", "status", "exam_date", "opens_at", "closes_at")
     search_fields = ("name",)
     list_filter = ("level", "status", "exam_date")
     autocomplete_fields = ("level",)

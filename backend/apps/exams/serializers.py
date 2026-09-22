@@ -17,7 +17,10 @@ class AvailableExamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Exam
-        fields = ("id", "name", "level", "max_score", "exam_date", "sections", "exam_file_url")
+        fields = (
+            "id", "name", "level", "max_score", "exam_date", "opens_at", "closes_at",
+            "sections", "exam_file_url",
+        )
 
     def get_exam_file_url(self, exam):
         if not exam.exam_file:

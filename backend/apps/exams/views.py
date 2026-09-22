@@ -1,5 +1,7 @@
+from django.db import models
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -30,9 +32,11 @@ class AvailableExamListView(APIView):
                 {"error": "student_level_required", "message": "Your level has not been assigned yet."},
                 status=status.HTTP_409_CONFLICT,
             )
-        exams = Exam.objects.filter(status="open", level_id=student.level_id).select_related(
-            "level"
-        ).prefetch_related("sections")
+        current_time = timezone.now()
+        exams = Exam.objects.filter(status="open", level_id=student.level_id).filter(
+            models.Q(opens_at__isnull=True) | models.Q(opens_at__lte=current_time),
+            models.Q(closes_at__isnull=True) | models.Q(closes_at__gte=current_time),
+        ).select_related("level").prefetch_related("sections")
         return Response(AvailableExamSerializer(exams, many=True, context={"request": request}).data)
 
 
@@ -55,6 +59,11 @@ class ExamSubmissionCreateView(APIView):
         student_code = str(request.data.get("student_code", "")).strip().upper()
         student = get_object_or_404(Student, student_code=student_code)
         exam = get_object_or_404(Exam, id=request.data.get("exam"), status="open")
+        if not exam.is_submission_open:
+            return Response(
+                {"error": "exam_submission_closed"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if not student.level_id or exam.level_id != student.level_id:
             return Response(
                 {"error": "exam_not_available_for_student_level"},
