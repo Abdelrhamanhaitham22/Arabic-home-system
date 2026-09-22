@@ -2,6 +2,7 @@ from django.db import models
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from mimetypes import guess_type
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -49,7 +50,10 @@ class ExamFileView(APIView):
             exam_file = exam.exam_file.open("rb")
         except FileNotFoundError as error:
             raise Http404("The exam file is temporarily unavailable.") from error
-        return FileResponse(exam_file, content_type="application/pdf")
+        content_type = guess_type(exam.exam_file.name)[0] or "application/octet-stream"
+        response = FileResponse(exam_file, content_type=content_type)
+        response["Content-Disposition"] = f'inline; filename="{exam.exam_file.name.rsplit("/", 1)[-1]}"'
+        return response
 
 
 class ExamSubmissionCreateView(APIView):

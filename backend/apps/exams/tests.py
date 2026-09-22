@@ -223,3 +223,12 @@ class ExamSubmissionApiTests(TestCase):
         response = self.client.get(f"/api/exams/{self.exam.id}/file/")
 
         self.assertEqual(response.status_code, 404)
+
+    def test_exam_file_uses_uploaded_file_type(self):
+        self.exam.exam_file.save("exam.docx", SimpleUploadedFile("exam.docx", b"docx content"))
+
+        response = self.client.get(f"/api/exams/{self.exam.id}/file/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        self.assertIn('filename="exam.docx"', response["Content-Disposition"])
