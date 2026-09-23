@@ -5,8 +5,12 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-secret-key")
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "local-development-key-change-this-before-production-9f4b2c7a",
+)
 DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
+IS_TESTING = os.environ.get("DJANGO_TESTING") == "1" or os.environ.get("DJANGO_DATABASE", "").lower() == "sqlite"
 DJANGO_ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 ALLOWED_HOSTS = ["*"] if DJANGO_ALLOWED_HOSTS.strip() == "*" else DJANGO_ALLOWED_HOSTS.split(",")
 
@@ -132,11 +136,36 @@ CSRF_TRUSTED_ORIGINS = [
 
 USE_X_FORWARDED_HOST = os.environ.get("USE_X_FORWARDED_HOST", "1") == "1"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "0") == "1"
-SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "1") == "1"
+SECURE_SSL_REDIRECT = os.environ.get(
+    "DJANGO_SECURE_SSL_REDIRECT", "0" if DEBUG or IS_TESTING else "1"
+) == "1"
+SECURE_HSTS_SECONDS = int(
+    os.environ.get("SECURE_HSTS_SECONDS", "0" if DEBUG or IS_TESTING else "31536000")
+)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS", "0" if DEBUG or IS_TESTING else "1"
+) == "1"
+SECURE_HSTS_PRELOAD = os.environ.get(
+    "SECURE_HSTS_PRELOAD", "0" if DEBUG or IS_TESTING else "1"
+) == "1"
+SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "0" if DEBUG or IS_TESTING else "1") == "1"
 SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "None")
-CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "1") == "1"
+CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "0" if DEBUG or IS_TESTING else "1") == "1"
 CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "None")
+
+if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
+    INSTALLED_APPS.append("storages")
+    DEFAULT_FILE_STORAGE = "storages.backends.s3.S3Storage"
+    AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
+    AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
+    AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
+    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME")
+    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = os.environ.get("AWS_QUERYSTRING_AUTH", "1") == "1"
+    AWS_S3_SIGNATURE_VERSION = os.environ.get("AWS_S3_SIGNATURE_VERSION", "s3v4")
+    MEDIA_URL = os.environ.get("AWS_S3_CUSTOM_DOMAIN", "")
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],

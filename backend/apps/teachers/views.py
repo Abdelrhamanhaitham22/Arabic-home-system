@@ -1,11 +1,13 @@
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django_ratelimit.decorators import ratelimit
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -32,6 +34,7 @@ class TeacherCsrfView(APIView):
 class TeacherSignupView(APIView):
     permission_classes = (AllowAny,)
 
+    @method_decorator(ratelimit(key="ip", rate="10/h", method="POST", block=True))
     def post(self, request):
         username = str(request.data.get("username", "")).strip()
         password = request.data.get("password", "")
@@ -55,6 +58,7 @@ class TeacherSignupView(APIView):
 class TeacherLoginView(APIView):
     permission_classes = (AllowAny,)
 
+    @method_decorator(ratelimit(key="ip", rate="20/h", method="POST", block=True))
     def post(self, request):
         username = str(request.data.get("username", "")).strip()
         password = request.data.get("password", "")
@@ -198,39 +202,45 @@ class TeacherSubmissionGradeView(APIView):
         if submission is None:
             return Response({"detail": "Teacher access required."}, status=status.HTTP_403_FORBIDDEN)
 
-        result, _ = submission.create_draft_result()
         sections = request.data.get("sections", [])
         if not isinstance(sections, list):
             return Response({"detail": "Sections must be a list."}, status=status.HTTP_400_BAD_REQUEST)
 
-        section_ids = set(submission.exam.sections.values_list("id", flat=True))
+        exam_sections = {section.id: section for section in submission.exam.sections.all()}
         submitted_ids = set()
+        validated_scores = []
         for section_data in sections:
             try:
                 section_id = int(section_data["section_id"])
                 score = int(section_data["score"])
             except (KeyError, TypeError, ValueError):
                 return Response({"detail": "Each section needs a section_id and numeric score."}, status=status.HTTP_400_BAD_REQUEST)
-            if section_id not in section_ids:
+            if section_id not in exam_sections:
                 return Response({"detail": "Section does not belong to this exam."}, status=status.HTTP_400_BAD_REQUEST)
             if section_id in submitted_ids:
                 return Response({"detail": "Each section can only be scored once."}, status=status.HTTP_400_BAD_REQUEST)
             submitted_ids.add(section_id)
-            section = submission.exam.sections.get(id=section_id)
+            section = exam_sections[section_id]
             if score < 0 or score > section.max_score:
                 return Response({"detail": f"Score for {section.name} must be between 0 and {section.max_score}."}, status=status.HTTP_400_BAD_REQUEST)
-            SectionScore.objects.update_or_create(
-                result=result,
-                section=section,
-                defaults={"score": score, "teacher_comment": str(section_data.get("teacher_comment", ""))},
+            validated_scores.append(
+                (section, score, str(section_data.get("teacher_comment", "")))
             )
 
-        if "teacher_notes" in request.data:
-            result.teacher_notes = str(request.data.get("teacher_notes", ""))
-            result.save(update_fields=("teacher_notes", "updated_at"))
-        if request.data.get("publish"):
-            try:
-                result.publish()
-            except ValidationError as error:
-                return Response({"detail": error.messages}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            with transaction.atomic():
+                result, _ = submission.create_draft_result()
+                for section, score, teacher_comment in validated_scores:
+                    SectionScore.objects.update_or_create(
+                        result=result,
+                        section=section,
+                        defaults={"score": score, "teacher_comment": teacher_comment},
+                    )
+                if "teacher_notes" in request.data:
+                    result.teacher_notes = str(request.data.get("teacher_notes", ""))
+                    result.save(update_fields=("teacher_notes", "updated_at"))
+                if request.data.get("publish"):
+                    result.publish()
+        except ValidationError as error:
+            return Response({"detail": error.messages}, status=status.HTTP_400_BAD_REQUEST)
         return Response(TeacherMeView.serialize_result(result))

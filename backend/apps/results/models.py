@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from apps.core.file_validation import validate_answer_file
 from apps.exams.models import Exam, ExamSection
 from apps.students.models import Student
 
@@ -16,7 +17,9 @@ class ExamSubmission(models.Model):
 
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="exam_submissions")
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="submissions")
-    answer_file = models.FileField(upload_to="answer_sheets/", blank=True)
+    answer_file = models.FileField(
+        upload_to="answer_sheets/", blank=True, validators=[validate_answer_file]
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="submitted")
     submitted_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)

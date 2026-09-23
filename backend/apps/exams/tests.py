@@ -6,6 +6,7 @@ from django.core.management import call_command
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.core.management import call_command
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -221,18 +222,57 @@ class ExamSubmissionApiTests(TestCase):
         self.exam.exam_file.name = "exams/missing.pdf"
         self.exam.save(update_fields=("exam_file",))
 
-        response = self.client.get(f"/api/exams/{self.exam.id}/file/")
+        response = self.client.get(
+            f"/api/exams/{self.exam.id}/file/?student_code={self.student.student_code}"
+        )
 
         self.assertEqual(response.status_code, 404)
 
     def test_exam_file_uses_uploaded_file_type(self):
         self.exam.exam_file.save("exam.pdf", SimpleUploadedFile("exam.pdf", b"%PDF-1.7"))
 
-        response = self.client.get(f"/api/exams/{self.exam.id}/file/")
+        response = self.client.get(
+            f"/api/exams/{self.exam.id}/file/?student_code={self.student.student_code}"
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
-        self.assertIn('filename="exam.pdf"', response["Content-Disposition"])
+        self.assertRegex(response["Content-Disposition"], r'filename="exam(?:_[A-Za-z0-9]+)?\.pdf"')
+
+    def test_exam_file_requires_student_code(self):
+        response = self.client.get(f"/api/exams/{self.exam.id}/file/")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["error"], "student_code_required")
+
+    def test_exam_file_rejects_student_from_another_level(self):
+        other_level = Level.objects.create(name="Level 5", order=5)
+        other_student = Student.objects.create(
+            full_name="Other Student",
+            phone_number="+20101234568",
+            address="Alexandria, Egypt",
+            passport_number="P1234568",
+            level=other_level,
+        )
+
+        response = self.client.get(
+            f"/api/exams/{self.exam.id}/file/?student_code={other_student.student_code}"
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["error"], "exam_not_available_for_student_level")
+
+    def test_exam_file_is_unavailable_after_closing(self):
+        self.exam.exam_file.save("exam.pdf", SimpleUploadedFile("exam.pdf", b"%PDF-1.7"))
+        self.exam.closes_at = timezone.now() - timedelta(minutes=1)
+        self.exam.save(update_fields=("exam_file", "closes_at"))
+
+        response = self.client.get(
+            f"/api/exams/{self.exam.id}/file/?student_code={self.student.student_code}"
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["error"], "exam_not_available")
 
     def test_exam_file_rejects_non_pdf_uploads(self):
         self.exam.exam_file = SimpleUploadedFile("exam.docx", b"docx content")
@@ -245,3 +285,26 @@ class ExamSubmissionApiTests(TestCase):
 
         with self.assertRaises(ValidationError):
             self.exam.full_clean()
+
+    def test_answer_file_rejects_pdf_mime_type_spoofing(self):
+        answer_file = SimpleUploadedFile(
+            "answers.pdf", b"not a PDF", content_type="application/pdf"
+        )
+
+        response = self.client.post(
+            "/api/exams/submissions/",
+            {"student_code": self.student.student_code, "exam": self.exam.id, "answer_file": answer_file},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["error"], "unsupported_answer_file_type")
+
+    def test_audit_exam_files_reports_invalid_file(self):
+        self.exam.exam_file.name = "exams/missing.pdf"
+        self.exam.save(update_fields=("exam_file",))
+        output = StringIO()
+
+        call_command("audit_exam_files", stdout=output)
+
+        self.assertIn("missing.pdf", output.getvalue())

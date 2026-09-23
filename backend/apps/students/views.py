@@ -30,7 +30,11 @@ class RegisterStudentView(APIView):
 
 class StudentLevelOptionsView(APIView):
     def get(self, request):
-        levels = Level.objects.order_by("order", "name").values("id", "name")
+        levels = (
+            Level.objects.filter(is_active=True)
+            .order_by("order", "name")
+            .values("id", "name")
+        )
         return Response(LevelOptionSerializer(levels, many=True).data)
 
 

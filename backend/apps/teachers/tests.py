@@ -179,7 +179,46 @@ class TeacherPortalTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertFalse(Result.objects.get(submission=self.submission_one).published)
+        self.assertFalse(Result.objects.filter(submission=self.submission_one).exists())
+
+    def test_invalid_grade_does_not_persist_previous_section_scores(self):
+        second_section = ExamSection.objects.create(
+            exam=self.exam_one, name="Writing", max_score=10, order=2
+        )
+        self.login()
+
+        response = self.client.put(
+            f"/api/teachers/submissions/{self.submission_one.id}/grade/",
+            {
+                "sections": [
+                    {"section_id": self.section_one.id, "score": 13},
+                    {"section_id": second_section.id, "score": 11},
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Result.objects.filter(submission=self.submission_one).exists())
+
+    def test_failed_publish_does_not_persist_draft_changes(self):
+        ExamSection.objects.create(
+            exam=self.exam_one, name="Writing", max_score=10, order=2
+        )
+        self.login()
+
+        response = self.client.put(
+            f"/api/teachers/submissions/{self.submission_one.id}/grade/",
+            {
+                "sections": [{"section_id": self.section_one.id, "score": 13}],
+                "teacher_notes": "Should roll back",
+                "publish": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Result.objects.filter(submission=self.submission_one).exists())
 
     def test_teacher_cannot_exceed_section_maximum(self):
         self.login()

@@ -1,7 +1,8 @@
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from mimetypes import guess_type
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -13,6 +14,7 @@ from apps.results.models import ExamSubmission
 
 from .models import Exam
 from .serializers import AvailableExamSerializer, ExamSubmissionSerializer
+from apps.core.file_validation import validate_answer_file
 
 
 MAX_ANSWER_FILE_SIZE = 10 * 1024 * 1024
@@ -43,7 +45,24 @@ class AvailableExamListView(APIView):
 
 class ExamFileView(APIView):
     def get(self, request, exam_id):
+        student_code = str(request.query_params.get("student_code", "")).strip().upper()
+        if not student_code:
+            return Response(
+                {"error": "student_code_required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        student = get_object_or_404(Student, student_code=student_code)
         exam = get_object_or_404(Exam, id=exam_id, status="open")
+        if not student.level_id or exam.level_id != student.level_id:
+            return Response(
+                {"error": "exam_not_available_for_student_level"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if not exam.is_submission_open:
+            return Response(
+                {"error": "exam_not_available"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if not exam.exam_file:
             raise Http404
         try:
@@ -80,11 +99,19 @@ class ExamSubmissionCreateView(APIView):
             return Response({"error": "answer_file_too_large"}, status=status.HTTP_400_BAD_REQUEST)
         if answer_file.content_type not in ALLOWED_ANSWER_TYPES:
             return Response({"error": "unsupported_answer_file_type"}, status=status.HTTP_400_BAD_REQUEST)
-        submission, created = ExamSubmission.objects.get_or_create(
-            student=student,
-            exam=exam,
-            defaults={"answer_file": answer_file},
-        )
+        try:
+            validate_answer_file(answer_file)
+        except ValidationError:
+            return Response({"error": "unsupported_answer_file_type"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            with transaction.atomic():
+                submission, created = ExamSubmission.objects.get_or_create(
+                    student=student,
+                    exam=exam,
+                    defaults={"answer_file": answer_file},
+                )
+        except IntegrityError:
+            created = False
         if not created:
             return Response({"error": "duplicate_submission"}, status=status.HTTP_409_CONFLICT)
         return Response(ExamSubmissionSerializer(submission).data, status=status.HTTP_201_CREATED)

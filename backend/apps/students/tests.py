@@ -80,6 +80,14 @@ class StudentRegistrationApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [{"id": self.level_five.id, "name": "Level 5"}, {"id": self.level_six.id, "name": "Level 6"}])
 
+    def test_level_options_exclude_inactive_levels(self):
+        self.level_six.is_active = False
+        self.level_six.save(update_fields=("is_active",))
+
+        response = self.client.get("/api/students/levels/")
+
+        self.assertEqual(response.data, [{"id": self.level_five.id, "name": "Level 5"}])
+
     def test_registration_allows_configured_frontend_origin(self):
         response = self.client.post(
             "/api/students/register/",

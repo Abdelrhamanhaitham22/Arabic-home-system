@@ -106,6 +106,12 @@ docker compose exec backend python manage.py test
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Comma-separated allowed frontend origins; use `*` to allow all |
 | `CORS_ALLOW_ALL_ORIGINS` | `0` | Set to `1` to allow CORS from any origin |
 | `DJANGO_SECURE_SSL_REDIRECT` | `0` | Set to `1` to redirect HTTP to HTTPS |
+| `SECURE_HSTS_SECONDS` | `31536000` | HSTS duration in production; use `0` for local HTTP development |
+| `AWS_STORAGE_BUCKET_NAME` | — | Enables S3-compatible persistent media storage |
+| `AWS_ACCESS_KEY_ID` | — | S3-compatible storage access key |
+| `AWS_SECRET_ACCESS_KEY` | — | S3-compatible storage secret |
+| `AWS_S3_REGION_NAME` | — | Optional storage region |
+| `AWS_S3_ENDPOINT_URL` | — | Optional S3-compatible endpoint |
 
 ## Railway Deployment
 
@@ -136,6 +142,8 @@ CORS_ALLOW_ALL_ORIGINS=1
 ```
 
 The backend root path (`/`) and `/health/` both return `{"status":"ok"}` for Railway's healthcheck.
+
+When `AWS_STORAGE_BUCKET_NAME` is configured, uploaded exam PDFs and student answer sheets use S3-compatible persistent storage. Without it, media is stored locally and may not survive container replacement.
 
 ## License
 

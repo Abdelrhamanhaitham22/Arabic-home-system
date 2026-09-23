@@ -3,15 +3,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
-
-def validate_pdf_file(uploaded_file):
-    if not uploaded_file.name.lower().endswith(".pdf"):
-        raise ValidationError("Exam files must be PDF files.")
-
-    file_header = uploaded_file.read(4)
-    uploaded_file.seek(0)
-    if file_header != b"%PDF":
-        raise ValidationError("The uploaded file is not a valid PDF.")
+from apps.core.file_validation import validate_pdf_file
 
 
 class Level(models.Model):
