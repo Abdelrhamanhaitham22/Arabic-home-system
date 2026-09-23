@@ -4,6 +4,16 @@ from django.db import models
 from django.utils import timezone
 
 
+def validate_pdf_file(uploaded_file):
+    if not uploaded_file.name.lower().endswith(".pdf"):
+        raise ValidationError("Exam files must be PDF files.")
+
+    file_header = uploaded_file.read(4)
+    uploaded_file.seek(0)
+    if file_header != b"%PDF":
+        raise ValidationError("The uploaded file is not a valid PDF.")
+
+
 class Level(models.Model):
     name = models.CharField(max_length=100, unique=True)
     order = models.PositiveIntegerField(unique=True)
@@ -33,7 +43,9 @@ class Exam(models.Model):
     name = models.CharField(max_length=255)
     max_score = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     exam_date = models.DateField()
-    exam_file = models.FileField(upload_to="exams/", blank=True)
+    exam_file = models.FileField(
+        upload_to="exams/", blank=True, validators=[validate_pdf_file]
+    )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
     opens_at = models.DateTimeField(null=True, blank=True)
     closes_at = models.DateTimeField(null=True, blank=True)
