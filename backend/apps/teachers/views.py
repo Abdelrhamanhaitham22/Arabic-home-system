@@ -62,7 +62,13 @@ class TeacherLoginView(APIView):
     def post(self, request):
         username = str(request.data.get("username", "")).strip()
         password = request.data.get("password", "")
-        user = authenticate(request, username=username, password=password)
+        user_model = get_user_model()
+        matched_user = user_model.objects.filter(username__iexact=username).first()
+        user = authenticate(
+            request,
+            username=matched_user.get_username() if matched_user else username,
+            password=password,
+        )
         profile = getattr(user, "teacher_profile", None) if user else None
         if not user or not user.is_active or profile is None:
             return Response(

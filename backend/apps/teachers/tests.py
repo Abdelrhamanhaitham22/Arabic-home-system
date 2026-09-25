@@ -97,6 +97,14 @@ class TeacherPortalTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_approved_teacher_login_is_case_insensitive_for_username(self):
+        response = self.client.post(
+            "/api/teachers/login/",
+            {"username": "TEACHER", "password": "secret"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+
     def test_teacher_csrf_endpoint_returns_token(self):
         response = self.client.get("/api/teachers/csrf/")
 
