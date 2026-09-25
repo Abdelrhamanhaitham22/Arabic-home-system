@@ -105,6 +105,14 @@ class TeacherPortalTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_teacher_login_normalizes_username_spacing(self):
+        response = self.client.post(
+            "/api/teachers/login/",
+            {"username": "  teacher  ", "password": "secret"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+
     def test_teacher_csrf_endpoint_returns_token(self):
         response = self.client.get("/api/teachers/csrf/")
 

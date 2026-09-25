@@ -1,3 +1,5 @@
+import unicodedata
+
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -23,6 +25,11 @@ def teacher_profile_for(request):
     return getattr(request.user, "teacher_profile", None)
 
 
+def normalize_teacher_username(username):
+    normalized = unicodedata.normalize("NFKC", str(username))
+    return " ".join(normalized.split())
+
+
 class TeacherCsrfView(APIView):
     permission_classes = (AllowAny,)
 
@@ -36,7 +43,7 @@ class TeacherSignupView(APIView):
 
     @method_decorator(ratelimit(key="ip", rate="10/h", method="POST", block=True))
     def post(self, request):
-        username = str(request.data.get("username", "")).strip()
+        username = normalize_teacher_username(request.data.get("username", ""))
         password = request.data.get("password", "")
         if not username or not password:
             return Response({"detail": "Username and password are required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -60,10 +67,19 @@ class TeacherLoginView(APIView):
 
     @method_decorator(ratelimit(key="ip", rate="20/h", method="POST", block=True))
     def post(self, request):
-        username = str(request.data.get("username", "")).strip()
+        username = normalize_teacher_username(request.data.get("username", ""))
         password = request.data.get("password", "")
         user_model = get_user_model()
         matched_user = user_model.objects.filter(username__iexact=username).first()
+        if matched_user is None:
+            matched_user = next(
+                (
+                    candidate
+                    for candidate in user_model.objects.filter(teacher_profile__isnull=False)
+                    if normalize_teacher_username(candidate.username).casefold() == username.casefold()
+                ),
+                None,
+            )
         user = authenticate(
             request,
             username=matched_user.get_username() if matched_user else username,
