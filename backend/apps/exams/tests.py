@@ -37,12 +37,11 @@ class AvailableExamApiTests(TestCase):
         self.assertEqual(response.data[0]["name"], "Level 6 Online Exam")
         self.assertNotIn("exam_file_url", response.data[0])
 
-    def test_legacy_file_and_submission_routes_are_removed(self):
+    def test_legacy_file_route_is_removed(self):
         self.assertEqual(
             self.client.get(f"/api/exams/{self.exam.id}/file/?student_code={self.student.student_code}").status_code,
             404,
         )
-        self.assertEqual(self.client.post("/api/exams/submissions/").status_code, 404)
 
 
 class SeedLevel6ExamCommandTests(TestCase):

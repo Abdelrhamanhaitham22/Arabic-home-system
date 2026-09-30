@@ -1,6 +1,5 @@
 from django.core.exceptions import ValidationError
 
-
 FILE_SIGNATURES = {
     ".pdf": (b"%PDF",),
     ".jpg": (b"\xff\xd8\xff",),
@@ -31,12 +30,4 @@ def validate_pdf_file(uploaded_file):
         uploaded_file,
         allowed_extensions={".pdf"},
         error_message="The uploaded file must be a valid PDF.",
-    )
-
-
-def validate_answer_file(uploaded_file):
-    validate_uploaded_file(
-        uploaded_file,
-        allowed_extensions={".pdf", ".jpg", ".jpeg", ".png"},
-        error_message="The uploaded file must be a valid PDF, JPEG, or PNG.",
     )
