@@ -12,7 +12,12 @@ type ResultResponse = { student_name: string; student_code: string; results: Res
 type TeacherStudent = { student_code: string; full_name: string; level: string | null }
 type TeacherResponse = { username: string; levels: { id: number; name: string }[]; students: TeacherStudent[] }
 type HomepageVideo = { id: number; title_ar: string; title_ru: string; description_ar: string; description_ru: string; video_url: string }
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+const configuredApiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+const apiBaseUrl = import.meta.env.DEV
+  ? (configuredApiBaseUrl || '/api')
+  : (configuredApiBaseUrl && configuredApiBaseUrl !== '/api'
+      ? configuredApiBaseUrl
+      : 'https://arabic-home-system-backend-6tpv-production.up.railway.app/api')
 
 async function readResponse(response: Response): Promise<ApiObject> {
   const text = await response.text()
