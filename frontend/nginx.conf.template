@@ -1,6 +1,7 @@
 server {
     listen ${PORT};
     server_name _;
+    client_max_body_size 100M;
     root /usr/share/nginx/html;
     index index.html;
     resolver 1.1.1.1 8.8.8.8 valid=30s;

@@ -111,6 +111,11 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+
 cors_allowed_origins_raw = os.environ.get(
     "CORS_ALLOWED_ORIGINS",
     "http://localhost:5173,https://arabic-home-system-production.up.railway.app",
@@ -155,7 +160,6 @@ CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "None")
 
 if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
     INSTALLED_APPS.append("storages")
-    DEFAULT_FILE_STORAGE = "storages.backends.s3.S3Storage"
     AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
     AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
     AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
@@ -166,6 +170,7 @@ if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
     AWS_QUERYSTRING_AUTH = os.environ.get("AWS_QUERYSTRING_AUTH", "1") == "1"
     AWS_S3_SIGNATURE_VERSION = os.environ.get("AWS_S3_SIGNATURE_VERSION", "s3v4")
     MEDIA_URL = os.environ.get("AWS_S3_CUSTOM_DOMAIN", "")
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
