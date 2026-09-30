@@ -6,5 +6,6 @@ COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend /app/backend
+RUN mkdir -p /app/backend/media && chmod 777 /app/backend/media
 
 CMD ["sh", "/app/backend/entrypoint.sh"]
