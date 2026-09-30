@@ -120,7 +120,7 @@ STORAGES = {
 
 cors_allowed_origins_raw = os.environ.get(
     "CORS_ALLOWED_ORIGINS",
-    "http://localhost:5173,https://arabic-home-system-production.up.railway.app",
+    "http://localhost:5173,https://arabic-home-system-production.up.railway.app,https://arabic-home-system-production-6fe7.up.railway.app",
 )
 cors_allow_all_raw = os.environ.get("CORS_ALLOW_ALL_ORIGINS", "0").lower()
 CORS_ALLOW_ALL_ORIGINS = (
@@ -131,6 +131,8 @@ CORS_ALLOWED_ORIGINS = [
     for origin in cors_allowed_origins_raw.split(",")
     if origin.strip()
 ]
+if "https://arabic-home-system-production-6fe7.up.railway.app" not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append("https://arabic-home-system-production-6fe7.up.railway.app")
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
@@ -140,6 +142,8 @@ CSRF_TRUSTED_ORIGINS = [
     ).split(",")
     if origin.strip()
 ]
+if "https://arabic-home-system-production-6fe7.up.railway.app" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://arabic-home-system-production-6fe7.up.railway.app")
 
 USE_X_FORWARDED_HOST = os.environ.get("USE_X_FORWARDED_HOST", "1") == "1"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
