@@ -1,5 +1,7 @@
 import datetime
+from io import StringIO
 
+from django.core.management import call_command
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -41,3 +43,26 @@ class AvailableExamApiTests(TestCase):
             404,
         )
         self.assertEqual(self.client.post("/api/exams/submissions/").status_code, 404)
+
+
+class SeedLevel6ExamCommandTests(TestCase):
+    def test_seed_creates_canonical_draft_exam(self):
+        output = StringIO()
+        call_command("seed_level_6_exam", "--exam-date", "2026-10-01", stdout=output)
+        exam = Exam.objects.get(name="Level 6 Final Exam")
+        self.assertEqual(exam.level.name, "Level 6")
+        self.assertEqual(exam.max_score, 80)
+        self.assertEqual(exam.exam_date, datetime.date(2026, 10, 1))
+        self.assertEqual(exam.status, "draft")
+        self.assertEqual(list(exam.sections.values_list("name", "max_score")), [
+            ("Reading", 15), ("Vocabulary", 15), ("Grammar", 15),
+            ("Writing", 15), ("Listening", 10), ("Dictation", 10),
+        ])
+        self.assertIn("6 sections (80 points)", output.getvalue())
+
+    def test_seed_is_idempotent_and_open_is_explicit(self):
+        call_command("seed_level_6_exam", "--exam-date", "2026-10-01")
+        call_command("seed_level_6_exam", "--exam-date", "2026-10-01", "--open")
+        self.assertEqual(Exam.objects.count(), 1)
+        self.assertEqual(ExamSection.objects.count(), 6)
+        self.assertEqual(Exam.objects.get().status, "open")

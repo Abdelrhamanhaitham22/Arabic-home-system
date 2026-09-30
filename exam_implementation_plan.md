@@ -41,7 +41,7 @@ The supplied exam should be created as:
   - Writing: 15
   - Listening: 10
   - Dictation: 10
-- Exam PDF: uploaded and attached to the exam record
+- Exam PDF: attached manually in Admin when the approved file is available
 
 ## Phase 1: Data Model and Admin Foundation
 
@@ -121,11 +121,11 @@ Make the supplied exam available in the real database.
 
 ### Work
 
-1. Add the PDF through Django Admin or a controlled data migration/management command.
+1. Attach the approved PDF through Django Admin; the seed command does not fabricate or expose a file.
 2. Create Level 6.
 3. Create the Level 6 final exam with maximum score 80.
 4. Create the six scoring sections and their maximum scores.
-5. Confirm the PDF can be downloaded by authorized staff.
+5. Confirm the attached PDF can be downloaded by authorized staff.
 6. Do not expose the answer sheet or teacher material publicly unless explicitly requested.
 
 ### Verification
@@ -133,6 +133,8 @@ Make the supplied exam available in the real database.
 - Confirm the file is stored using configured media storage.
 - Confirm the exam is visible only to authenticated staff in admin.
 - Confirm the section totals equal 80.
+
+The controlled seed command is `python manage.py seed_level_6_exam`. It creates a draft exam by default; pass `--open` only after the exam content and any staff-managed PDF have been verified.
 
 ## Phase 3: Student Submission Workflow
 
