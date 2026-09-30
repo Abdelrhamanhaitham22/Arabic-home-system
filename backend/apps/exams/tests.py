@@ -1,13 +1,6 @@
 import datetime
-from io import StringIO
-from datetime import timedelta
 
-from django.core.management import call_command
-from django.core.exceptions import ValidationError
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
-from django.core.management import call_command
-from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.students.models import Student
@@ -15,59 +8,18 @@ from apps.students.models import Student
 from .models import Exam, ExamSection, Level
 
 
-class SeedLevel6ExamCommandTests(TestCase):
-    def test_command_creates_level_exam_and_scoring_sections(self):
-        output = StringIO()
-
-        call_command("seed_level_6_exam", "--exam-date", "2026-09-14", stdout=output)
-
-        level = Level.objects.get(name="Level 6")
-        exam = Exam.objects.get(name="Level 6 Final Exam")
-        sections = list(ExamSection.objects.filter(exam=exam))
-
-        self.assertEqual(level.order, 6)
-        self.assertEqual(exam.level, level)
-        self.assertEqual(exam.exam_date, datetime.date(2026, 9, 14))
-        self.assertEqual(exam.max_score, 200)
-        self.assertEqual(
-            [(section.name, section.max_score) for section in sections],
-            [
-                ("Reading", 15),
-                ("Vocabulary", 15),
-                ("Grammar", 15),
-                ("Writing", 15),
-                ("Listening", 10),
-                ("Dictation", 10),
-                ("Activity", 40),
-                ("Oral", 80),
-            ],
-        )
-
-    def test_command_is_idempotent(self):
-        call_command("seed_level_6_exam", "--exam-date", "2026-09-14")
-        call_command("seed_level_6_exam", "--exam-date", "2026-09-15")
-
-        self.assertEqual(Level.objects.filter(name="Level 6").count(), 1)
-        self.assertEqual(Exam.objects.filter(name="Level 6 Final Exam").count(), 1)
-        self.assertEqual(Exam.objects.get(name="Level 6 Final Exam").max_score, 200)
-        self.assertEqual(ExamSection.objects.count(), 8)
-        self.assertEqual(
-            sum(ExamSection.objects.values_list("max_score", flat=True)),
-            200,
-        )
-
-
-class ExamSubmissionApiTests(TestCase):
+class AvailableExamApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.level = Level.objects.create(name="Level 6", order=6)
         self.exam = Exam.objects.create(
             level=self.level,
-            name="Level 6 Final Exam",
-            max_score=200,
-            exam_date=datetime.date(2026, 2, 26),
+            name="Level 6 Online Exam",
+            max_score=100,
+            exam_date=datetime.date(2026, 9, 30),
             status="open",
         )
+        ExamSection.objects.create(exam=self.exam, name="Reading", max_score=100, order=1)
         self.student = Student.objects.create(
             full_name="Ahmed Mohamed",
             phone_number="+20101234567",
@@ -76,235 +28,16 @@ class ExamSubmissionApiTests(TestCase):
             level=self.level,
         )
 
-    def test_open_exam_is_listed_with_sections_and_file_url(self):
+    def test_open_exam_is_listed_without_legacy_file_url(self):
         response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data[0]["name"], "Level 6 Final Exam")
-        self.assertEqual(response.data[0]["level"], "Level 6")
-        self.assertIsNone(response.data[0]["exam_file_url"])
+        self.assertEqual(response.data[0]["name"], "Level 6 Online Exam")
+        self.assertNotIn("exam_file_url", response.data[0])
 
-    def test_exam_list_requires_student_code(self):
-        response = self.client.get("/api/exams/")
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["error"], "student_code_required")
-
-    def test_exam_list_only_returns_students_level(self):
-        other_level = Level.objects.create(name="Level 5", order=5)
-        Exam.objects.create(
-            level=other_level,
-            name="Level 5 Final Exam",
-            max_score=100,
-            exam_date=datetime.date(2026, 2, 26),
-            status="open",
+    def test_legacy_file_and_submission_routes_are_removed(self):
+        self.assertEqual(
+            self.client.get(f"/api/exams/{self.exam.id}/file/?student_code={self.student.student_code}").status_code,
+            404,
         )
-
-        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
-
-        self.assertEqual([exam["name"] for exam in response.data], ["Level 6 Final Exam"])
-
-    def test_exam_list_requires_assigned_level(self):
-        self.student.level = None
-        self.student.save(update_fields=("level",))
-
-        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
-
-        self.assertEqual(response.status_code, 409)
-        self.assertEqual(response.data["error"], "student_level_required")
-
-    def test_student_can_submit_supported_answer_file_once(self):
-        answer_file = SimpleUploadedFile("answers.pdf", b"%PDF-1.4", content_type="application/pdf")
-
-        response = self.client.post(
-            "/api/exams/submissions/",
-            {"student_code": self.student.student_code, "exam": self.exam.id, "answer_file": answer_file},
-            format="multipart",
-        )
-
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data["status"], "submitted")
-
-    def test_student_cannot_submit_exam_from_another_level(self):
-        other_level = Level.objects.create(name="Level 5", order=5)
-        other_exam = Exam.objects.create(
-            level=other_level,
-            name="Level 5 Final Exam",
-            max_score=100,
-            exam_date=datetime.date(2026, 2, 26),
-            status="open",
-        )
-        answer_file = SimpleUploadedFile("answers.pdf", b"%PDF-1.4", content_type="application/pdf")
-
-        response = self.client.post(
-            "/api/exams/submissions/",
-            {"student_code": self.student.student_code, "exam": other_exam.id, "answer_file": answer_file},
-            format="multipart",
-        )
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data["error"], "exam_not_available_for_student_level")
-
-    def test_duplicate_submission_is_rejected(self):
-        self.student.exam_submissions.create(
-            exam=self.exam,
-            answer_file=SimpleUploadedFile("answers.pdf", b"%PDF-1.4", content_type="application/pdf"),
-        )
-        answer_file = SimpleUploadedFile("answers-again.pdf", b"%PDF-1.4", content_type="application/pdf")
-
-        response = self.client.post(
-            "/api/exams/submissions/",
-            {"student_code": self.student.student_code, "exam": self.exam.id, "answer_file": answer_file},
-            format="multipart",
-        )
-
-        self.assertEqual(response.status_code, 409)
-        self.assertEqual(response.data["error"], "duplicate_submission")
-
-    def test_scheduled_exam_is_hidden_before_opening(self):
-        self.exam.opens_at = timezone.now() + timedelta(hours=1)
-        self.exam.closes_at = timezone.now() + timedelta(days=1)
-        self.exam.save(update_fields=("opens_at", "closes_at"))
-
-        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [])
-
-    def test_scheduled_exam_is_hidden_after_closing(self):
-        self.exam.opens_at = timezone.now() - timedelta(days=1)
-        self.exam.closes_at = timezone.now() - timedelta(hours=1)
-        self.exam.save(update_fields=("opens_at", "closes_at"))
-
-        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [])
-
-    def test_submission_is_rejected_after_scheduled_closing(self):
-        self.exam.opens_at = timezone.now() - timedelta(days=1)
-        self.exam.closes_at = timezone.now() - timedelta(hours=1)
-        self.exam.save(update_fields=("opens_at", "closes_at"))
-        answer_file = SimpleUploadedFile("answers.pdf", b"%PDF-1.4", content_type="application/pdf")
-
-        response = self.client.post(
-            "/api/exams/submissions/",
-            {"student_code": self.student.student_code, "exam": self.exam.id, "answer_file": answer_file},
-            format="multipart",
-        )
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data["error"], "exam_submission_closed")
-
-    def test_scheduled_exam_is_available_inside_window(self):
-        self.exam.opens_at = timezone.now() - timedelta(hours=1)
-        self.exam.closes_at = timezone.now() + timedelta(hours=1)
-        self.exam.save(update_fields=("opens_at", "closes_at"))
-
-        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
-
-    def test_unsupported_answer_file_is_rejected(self):
-        answer_file = SimpleUploadedFile("answers.txt", b"not an answer sheet", content_type="text/plain")
-
-        response = self.client.post(
-            "/api/exams/submissions/",
-            {"student_code": self.student.student_code, "exam": self.exam.id, "answer_file": answer_file},
-            format="multipart",
-        )
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["error"], "unsupported_answer_file_type")
-
-    def test_missing_exam_file_returns_not_found(self):
-        self.exam.exam_file.name = "exams/missing.pdf"
-        self.exam.save(update_fields=("exam_file",))
-
-        response = self.client.get(
-            f"/api/exams/{self.exam.id}/file/?student_code={self.student.student_code}"
-        )
-
-        self.assertEqual(response.status_code, 404)
-
-    def test_exam_file_uses_uploaded_file_type(self):
-        self.exam.exam_file.save("exam.pdf", SimpleUploadedFile("exam.pdf", b"%PDF-1.7"))
-
-        response = self.client.get(
-            f"/api/exams/{self.exam.id}/file/?student_code={self.student.student_code}"
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Content-Type"], "application/pdf")
-        self.assertRegex(response["Content-Disposition"], r'filename="exam(?:_[A-Za-z0-9]+)?\.pdf"')
-
-    def test_exam_file_requires_student_code(self):
-        response = self.client.get(f"/api/exams/{self.exam.id}/file/")
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["error"], "student_code_required")
-
-    def test_exam_file_rejects_student_from_another_level(self):
-        other_level = Level.objects.create(name="Level 5", order=5)
-        other_student = Student.objects.create(
-            full_name="Other Student",
-            phone_number="+20101234568",
-            address="Alexandria, Egypt",
-            passport_number="P1234568",
-            level=other_level,
-        )
-
-        response = self.client.get(
-            f"/api/exams/{self.exam.id}/file/?student_code={other_student.student_code}"
-        )
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data["error"], "exam_not_available_for_student_level")
-
-    def test_exam_file_is_unavailable_after_closing(self):
-        self.exam.exam_file.save("exam.pdf", SimpleUploadedFile("exam.pdf", b"%PDF-1.7"))
-        self.exam.closes_at = timezone.now() - timedelta(minutes=1)
-        self.exam.save(update_fields=("exam_file", "closes_at"))
-
-        response = self.client.get(
-            f"/api/exams/{self.exam.id}/file/?student_code={self.student.student_code}"
-        )
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data["error"], "exam_not_available")
-
-    def test_exam_file_rejects_non_pdf_uploads(self):
-        self.exam.exam_file = SimpleUploadedFile("exam.docx", b"docx content")
-
-        with self.assertRaises(ValidationError):
-            self.exam.full_clean()
-
-    def test_exam_file_rejects_files_with_pdf_extension_without_pdf_content(self):
-        self.exam.exam_file = SimpleUploadedFile("exam.pdf", b"docx content")
-
-        with self.assertRaises(ValidationError):
-            self.exam.full_clean()
-
-    def test_answer_file_rejects_pdf_mime_type_spoofing(self):
-        answer_file = SimpleUploadedFile(
-            "answers.pdf", b"not a PDF", content_type="application/pdf"
-        )
-
-        response = self.client.post(
-            "/api/exams/submissions/",
-            {"student_code": self.student.student_code, "exam": self.exam.id, "answer_file": answer_file},
-            format="multipart",
-        )
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["error"], "unsupported_answer_file_type")
-
-    def test_audit_exam_files_reports_invalid_file(self):
-        self.exam.exam_file.name = "exams/missing.pdf"
-        self.exam.save(update_fields=("exam_file",))
-        output = StringIO()
-
-        call_command("audit_exam_files", stdout=output)
-
-        self.assertIn("missing.pdf", output.getvalue())
+        self.assertEqual(self.client.post("/api/exams/submissions/").status_code, 404)

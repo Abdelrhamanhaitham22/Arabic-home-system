@@ -3,9 +3,6 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
-from apps.core.file_validation import validate_pdf_file
-
-
 class Level(models.Model):
     name = models.CharField(max_length=100, unique=True)
     order = models.PositiveIntegerField(unique=True)
@@ -35,9 +32,6 @@ class Exam(models.Model):
     name = models.CharField(max_length=255)
     max_score = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     exam_date = models.DateField()
-    exam_file = models.FileField(
-        upload_to="exams/", blank=True, validators=[validate_pdf_file]
-    )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
     opens_at = models.DateTimeField(null=True, blank=True)
     closes_at = models.DateTimeField(null=True, blank=True)

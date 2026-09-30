@@ -2,7 +2,15 @@
 
 ## Goal
 
-Add level-based exams to بيت العربية. The first available exam will be the Level 6 final exam from the supplied six-page PDF. Students will submit their answers, teachers will mark them, and students will see published results using their existing student code.
+Add online, level-based exams to بيت العربية. Legacy PDF exams and answer-sheet submissions are intentionally removed in Phase 1. Students will later answer online, teachers will mark written responses, and students will see published results using their existing student code.
+
+## Phase 1: Remove Legacy PDF Workflow
+
+- Delete stored exam PDF files and student answer-sheet files through data migrations.
+- Delete legacy exam, result, and submission records.
+- Remove PDF fields, file-download routes, and answer-upload routes.
+- Remove the old student PDF exam page and teacher PDF grading UI.
+- Preserve levels, online exam scheduling fields, sections, result lookup, and teacher authentication for later phases.
 
 ## Current Baseline
 

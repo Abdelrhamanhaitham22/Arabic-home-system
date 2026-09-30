@@ -1,8 +1,6 @@
 import datetime
-from pathlib import Path
 
 from django.core.management.base import BaseCommand
-from django.core.files import File
 
 from apps.exams.models import Exam, ExamSection, Level
 
@@ -28,10 +26,6 @@ class Command(BaseCommand):
             default=datetime.date.today().isoformat(),
             help="Exam date in YYYY-MM-DD format.",
         )
-        parser.add_argument(
-            "--exam-file",
-            help="Path to the Level 6 exam PDF to attach.",
-        )
 
     def handle(self, *args, **options):
         exam_date = datetime.date.fromisoformat(options["exam_date"])
@@ -51,14 +45,6 @@ class Command(BaseCommand):
         if exam.max_score != 200:
             exam.max_score = 200
             exam.save(update_fields=("max_score",))
-
-        exam_file_path = options.get("exam_file")
-        if exam_file_path:
-            path = Path(exam_file_path)
-            if path.suffix.lower() != ".pdf":
-                raise ValueError("The exam file must be a PDF.")
-            with path.open("rb") as exam_file:
-                exam.exam_file.save(path.name, File(exam_file), save=True)
 
         for order, (name, max_score) in enumerate(SECTIONS, start=1):
             section, created_section = ExamSection.objects.get_or_create(

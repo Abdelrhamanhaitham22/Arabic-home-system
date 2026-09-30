@@ -5,7 +5,8 @@ Bilingual (Arabic/Russian) web platform for student registration and exam result
 ## Overview
 
 - **Students** register for free and receive a permanent unique 8-digit numeric code (e.g., `12345678`).
-- **Students** use their code on the Results page to look up exam scores.
+- **Students** use their code on the Results page to look up published scores.
+- Legacy PDF exams and answer-sheet uploads are removed in Phase 1. Online exam forms will be added in a later phase.
 - **Administrators** manage students, exams, and results via Django's built-in admin dashboard (`/admin/`).
 
 ## Tech Stack
@@ -37,6 +38,7 @@ Bilingual (Arabic/Russian) web platform for student registration and exam result
 - `/` — Home
 - `/register` — Student registration
 - `/results` — Exam result lookup
+- `/teacher` — Teacher access and assigned student list; online exam management is planned for a later phase.
 
 ## Public API Endpoints
 
@@ -89,6 +91,10 @@ Then access the admin panel at `http://localhost/admin/`.
 ```bash
 docker compose exec backend python manage.py test
 ```
+
+## Phase 1: Legacy PDF Removal
+
+The Phase 1 migrations permanently delete existing exam records, published results, PDF exam files, and student answer-sheet files. Back up the database and media storage before applying migrations in production.
 
 ## Environment Variables
 
