@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from urllib.parse import urlparse
 
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -41,3 +42,12 @@ class HomepageVideoTests(TestCase):
 
         with self.assertRaises(ValidationError):
             validate_video_size(large_file)
+
+    def test_uploaded_video_url_serves_the_video_file(self):
+        response = self.client.get("/api/core/videos/")
+        video_path = urlparse(response.data[0]["video_url"]).path
+
+        media_response = self.client.get(video_path)
+
+        self.assertEqual(media_response.status_code, 200)
+        self.assertEqual(b"".join(media_response.streaming_content), b"video")
