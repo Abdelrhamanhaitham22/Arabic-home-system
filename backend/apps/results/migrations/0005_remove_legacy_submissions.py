@@ -9,6 +9,9 @@ def delete_legacy_submission_files(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    # PostgreSQL must commit the submission cleanup before dropping its foreign key.
+    atomic = False
+
     dependencies = [
         ("exams", "0004_alter_exam_exam_file"),
         ("results", "0004_alter_examsubmission_answer_file"),

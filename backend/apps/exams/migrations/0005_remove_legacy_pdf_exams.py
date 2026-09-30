@@ -10,6 +10,9 @@ def delete_legacy_exam_records_and_files(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    # PostgreSQL must commit the row deletes before altering the table.
+    atomic = False
+
     dependencies = [
         ("exams", "0004_alter_exam_exam_file"),
         ("results", "0005_remove_legacy_submissions"),
