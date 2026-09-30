@@ -14,6 +14,4 @@ class HomepageVideoSerializer(serializers.ModelSerializer):
         )
 
     def get_video_url(self, obj):
-        request = self.context.get("request")
-        url = obj.video.url
-        return request.build_absolute_uri(url) if request else url
+        return obj.video.url
