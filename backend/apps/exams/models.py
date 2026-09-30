@@ -20,6 +20,7 @@ class Exam(models.Model):
         ("draft", "Draft"),
         ("open", "Open for submissions"),
         ("closed", "Closed"),
+        ("published", "Published"),
     ]
 
     level = models.ForeignKey(
@@ -35,11 +36,14 @@ class Exam(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
     opens_at = models.DateTimeField(null=True, blank=True)
     closes_at = models.DateTimeField(null=True, blank=True)
+    time_limit_minutes = models.PositiveIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
         if self.opens_at and self.closes_at and self.closes_at <= self.opens_at:
             raise ValidationError({"closes_at": "Closing time must be after opening time."})
+        if self.status == "published" and not self.pk:
+            raise ValidationError({"status": "Save the exam before publishing it."})
 
     @property
     def is_submission_open(self):
@@ -75,3 +79,54 @@ class ExamSection(models.Model):
 
     def __str__(self):
         return f"{self.exam.name} - {self.name}"
+
+
+class Question(models.Model):
+    TYPE_CHOICES = [
+        ("multiple_choice", "Multiple choice"),
+        ("true_false", "True or false"),
+        ("short_answer", "Short answer"),
+        ("written", "Written answer"),
+    ]
+
+    section = models.ForeignKey(ExamSection, on_delete=models.CASCADE, related_name="questions")
+    prompt = models.TextField()
+    question_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    points = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    order = models.PositiveIntegerField()
+    answer_text = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("order",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("section", "order"),
+                name="unique_section_question_order",
+            ),
+        ]
+
+    def clean(self):
+        if self.question_type in {"multiple_choice", "true_false"} and self.answer_text:
+            raise ValidationError({"answer_text": "Objective questions use answer choices."})
+
+    def __str__(self):
+        return f"{self.section} - Question {self.order}"
+
+
+class QuestionChoice(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="choices")
+    text = models.CharField(max_length=500)
+    order = models.PositiveIntegerField()
+    is_correct = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ("order",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("question", "order"),
+                name="unique_question_choice_order",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.question} - Choice {self.order}"
