@@ -8,7 +8,7 @@ class ResultItemSerializer(serializers.ModelSerializer):
     level = serializers.CharField(source="exam.level.name", allow_null=True)
     max_score = serializers.IntegerField(source="exam.max_score")
     exam_date = serializers.DateField(source="exam.exam_date")
-    percentage = serializers.FloatField(read_only=True)
+    percentage = serializers.SerializerMethodField()
     sections = serializers.SerializerMethodField()
     teacher_feedback = serializers.CharField(source="teacher_notes", read_only=True)
 
@@ -32,6 +32,10 @@ class ResultItemSerializer(serializers.ModelSerializer):
                 key=lambda section_score: section_score.section.order,
             )
         ]
+
+    def get_percentage(self, result):
+        maximum = result.max_score or result.exam.max_score
+        return round((result.score / maximum) * 100, 2) if maximum else 0
 
     class Meta:
         model = Result

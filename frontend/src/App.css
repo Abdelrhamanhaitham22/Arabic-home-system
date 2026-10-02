@@ -40,7 +40,7 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
   .hero-brand-panel img { width: min(58vw, 230px); }
   .hero-copy { order: 1; }
   .hero-visual { order: 3; }
-  .videos-section { padding: var(--space-6) 0; }.videos-heading { align-items: start; flex-direction: column; gap: var(--space-3); }.video-grid { grid-template-columns: 1fr; }
+  .videos-section { padding: var(--space-6) 0; }.videos-heading { align-items: start; flex-direction: column; gap: var(--space-3); }.video-grid { grid-template-columns: 1fr; }.attempt-layout { grid-template-columns: 1fr; }.question-nav { grid-template-columns: repeat(10, 1fr); }.attempt-question { padding: var(--space-3); }
 }
 
 .result-row { display: block; }
@@ -117,6 +117,7 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
 .exam-submit-form { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3) var(--space-4); margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--line); }
 .exam-submit-form .submit-button, .exam-submit-form .form-error { grid-column: 1 / -1; }
 .exam-submit-form input[type='file'] { padding: 13px 10px; }
+.attempt-layout { display: grid; grid-template-columns: 180px 1fr; gap: var(--space-5); margin-top: var(--space-5); }.question-nav { display: grid; grid-template-columns: repeat(5, 1fr); align-content: start; gap: 8px; }.question-nav button { min-height: 38px; border: 1px solid var(--line); color: var(--ink); background: white; cursor: pointer; }.question-nav button.answered { border-color: var(--primary); background: var(--mint); }.question-nav button.selected { color: white; background: var(--primary); }.attempt-question { padding: var(--space-5); border: 1px solid var(--line); background: white; }.attempt-question h2 { margin: 0; color: var(--ink); font-size: clamp(1.4rem, 3vw, 2.2rem); line-height: 1.35; }.choice-list { display: grid; gap: 12px; margin-top: var(--space-5); }.choice { padding: 15px 18px; border: 1px solid var(--line); color: var(--ink); background: white; cursor: pointer; text-align: start; font: inherit; }.choice:hover, .choice.selected { border-color: var(--primary); background: var(--mint); }.choice:disabled { cursor: default; }.attempt-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: var(--space-5); }.exam-timer { padding: 12px 16px; color: var(--primary-dark); background: var(--mint); font-family: 'DM Mono'; font-size: 12px; white-space: nowrap; }
 .exam-submit-form small { color: var(--muted); font-size: 11px; line-height: 1.5; }
 
 @media (max-width: 760px) {
