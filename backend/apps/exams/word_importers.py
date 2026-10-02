@@ -19,6 +19,7 @@ FIELD_NAMES = {
 def read_question_blocks(uploaded_file):
     document = Document(uploaded_file)
     blocks, block = [], {}
+    started = False
     for paragraph in document.paragraphs:
         line = paragraph.text.strip()
         if not line:
@@ -26,6 +27,9 @@ def read_question_blocks(uploaded_file):
                 blocks.append(block)
                 block = {}
             continue
+        if not started and not line.lower().startswith("question:"):
+            continue
+        started = True
         if ":" not in line:
             raise ValidationError(f"Invalid line: {line}")
         label, value = line.split(":", 1)
