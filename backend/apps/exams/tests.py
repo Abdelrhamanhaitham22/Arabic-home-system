@@ -1,13 +1,119 @@
 import datetime
 from io import StringIO
 
-from django.core.management import call_command
+from django.core.management import CommandError, call_command
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from apps.students.models import Student
 
 from .models import Exam, ExamSection, Level, Question, QuestionChoice
+
+
+class QuestionBankTests(TestCase):
+    def setUp(self):
+        self.level = Level.objects.create(name="Level 6", order=6)
+        self.exam = Exam.objects.create(
+            level=self.level,
+            name="Level 6 Online Exam",
+            max_score=50,
+            exam_date=datetime.date(2026, 9, 30),
+        )
+        self.section = ExamSection.objects.create(
+            exam=self.exam,
+            name="Objective",
+            max_score=50,
+            order=1,
+        )
+
+    def test_question_belongs_to_level_question_bank(self):
+        question = Question.objects.create(
+            level=self.level,
+            section=self.section,
+            prompt="Is this true?",
+            question_type="true_false",
+            points=1,
+            order=1,
+            bank_order=1,
+        )
+
+        self.assertEqual(list(self.level.question_bank.all()), [question])
+        self.assertTrue(question.is_active)
+
+    def test_question_bank_order_is_unique_per_level(self):
+        Question.objects.create(
+            level=self.level,
+            prompt="First question",
+            question_type="true_false",
+            points=1,
+            order=1,
+            bank_order=1,
+        )
+
+        with self.assertRaises(IntegrityError):
+            Question.objects.create(
+                level=self.level,
+                prompt="Duplicate order",
+                question_type="true_false",
+                points=1,
+                order=2,
+                bank_order=1,
+            )
+
+    def test_objective_questions_cannot_use_answer_text(self):
+        question = Question(
+            level=self.level,
+            prompt="Is this true?",
+            question_type="true_false",
+            points=1,
+            order=1,
+            answer_text="True",
+        )
+
+        with self.assertRaises(ValidationError):
+            question.full_clean()
+
+    def test_incomplete_question_bank_reports_missing_requirements(self):
+        errors = self.level.question_bank_errors()
+
+        self.assertIn("The active question bank must contain exactly 100 questions.", errors)
+        self.assertIn("The active question bank must contain at least 25 true/false questions.", errors)
+        self.assertIn("The active question bank must contain at least 25 multiple-choice questions.", errors)
+
+    def test_question_bank_requires_exactly_one_correct_choice(self):
+        question = Question.objects.create(
+            level=self.level,
+            prompt="Choose one.",
+            question_type="multiple_choice",
+            points=1,
+            order=1,
+            bank_order=1,
+        )
+        QuestionChoice.objects.create(question=question, text="First", order=1)
+        QuestionChoice.objects.create(question=question, text="Second", order=2)
+
+        self.assertIn("Question %s must have exactly one correct answer." % question.id, self.level.question_bank_errors())
+
+    def test_complete_question_bank_is_valid(self):
+        for bank_order in range(1, 101):
+            question_type = "true_false" if bank_order <= 50 else "multiple_choice"
+            question = Question.objects.create(
+                level=self.level,
+                prompt=f"Question {bank_order}",
+                question_type=question_type,
+                points=1,
+                order=bank_order,
+                bank_order=bank_order,
+            )
+            QuestionChoice.objects.create(question=question, text="Correct", order=1, is_correct=True)
+            QuestionChoice.objects.create(question=question, text="Wrong", order=2)
+
+        self.assertEqual(self.level.question_bank_errors(), [])
+
+        self.exam.status = "open"
+        self.exam.full_clean()
 
 
 class AvailableExamApiTests(TestCase):
@@ -25,6 +131,7 @@ class AvailableExamApiTests(TestCase):
         ExamSection.objects.create(exam=self.exam, name="Reading", max_score=100, order=1)
         section = self.exam.sections.get()
         multiple_choice = Question.objects.create(
+            level=self.level,
             section=section,
             prompt="Choose the greeting.",
             question_type="multiple_choice",
@@ -33,13 +140,29 @@ class AvailableExamApiTests(TestCase):
         )
         QuestionChoice.objects.create(question=multiple_choice, text="مرحبا", order=1, is_correct=True)
         QuestionChoice.objects.create(question=multiple_choice, text="وداعا", order=2)
-        Question.objects.create(
+        QuestionChoice.objects.create(question=multiple_choice, text="Another", order=3)
+        true_false = Question.objects.create(
+            level=self.level,
             section=section,
-            prompt="Write a sentence.",
-            question_type="written",
+            prompt="Is this true?",
+            question_type="true_false",
             points=5,
             order=2,
         )
+        QuestionChoice.objects.create(question=true_false, text="True", order=1, is_correct=True)
+        QuestionChoice.objects.create(question=true_false, text="False", order=2)
+        for bank_order in range(3, 101):
+            question_type = "true_false" if bank_order <= 50 else "multiple_choice"
+            question = Question.objects.create(
+                level=self.level,
+                prompt=f"Bank question {bank_order}",
+                question_type=question_type,
+                points=1,
+                order=bank_order,
+                bank_order=bank_order,
+            )
+            QuestionChoice.objects.create(question=question, text="Correct", order=1, is_correct=True)
+            QuestionChoice.objects.create(question=question, text="Wrong", order=2)
         self.student = Student.objects.create(
             full_name="Ahmed Mohamed",
             phone_number="+20101234567",
@@ -90,6 +213,19 @@ class AvailableExamApiTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_incomplete_question_bank_hides_exam_and_blocks_detail(self):
+        Question.objects.filter(level=self.level).first().delete()
+
+        list_response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
+        detail_response = self.client.get(
+            f"/api/exams/{self.exam.id}/?student_code={self.student.student_code}"
+        )
+
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(list_response.data, [])
+        self.assertEqual(detail_response.status_code, 409)
+        self.assertEqual(detail_response.data["error"], "question_bank_incomplete")
+
 
 class SeedLevel6ExamCommandTests(TestCase):
     def test_seed_creates_canonical_draft_exam(self):
@@ -108,7 +244,8 @@ class SeedLevel6ExamCommandTests(TestCase):
 
     def test_seed_is_idempotent_and_open_is_explicit(self):
         call_command("seed_level_6_exam", "--exam-date", "2026-10-01")
-        call_command("seed_level_6_exam", "--exam-date", "2026-10-01", "--open")
+        with self.assertRaises(CommandError):
+            call_command("seed_level_6_exam", "--exam-date", "2026-10-01", "--open")
         self.assertEqual(Exam.objects.count(), 1)
         self.assertEqual(ExamSection.objects.count(), 6)
-        self.assertEqual(Exam.objects.get().status, "open")
+        self.assertEqual(Exam.objects.get().status, "draft")

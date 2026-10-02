@@ -1,6 +1,7 @@
 import datetime
 
-from django.core.management.base import BaseCommand
+from django.core.exceptions import ValidationError
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from apps.exams.models import Exam, ExamSection, Level
@@ -38,7 +39,7 @@ class Command(BaseCommand):
                     "level": level,
                     "max_score": MAX_SCORE,
                     "exam_date": exam_date,
-                    "status": "open" if options["open"] else "draft",
+                    "status": "draft",
                 },
             )
             changed_fields = []
@@ -52,6 +53,13 @@ class Command(BaseCommand):
                 exam.exam_date = exam_date
                 changed_fields.append("exam_date")
             if options["open"] and exam.status != "open":
+                try:
+                    level.validate_question_bank()
+                except ValidationError as error:
+                    raise CommandError(
+                        "The exam cannot be opened until the level question bank is complete: "
+                        + "; ".join(error.message_dict["question_bank"])
+                    ) from error
                 exam.status = "open"
                 changed_fields.append("status")
             if changed_fields:

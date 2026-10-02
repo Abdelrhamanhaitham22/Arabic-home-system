@@ -1,5 +1,57 @@
 # Online Exam Implementation Plan
 
+## Phase 1: Confirmed Exam Rules
+
+This phase is complete when the rules below are accepted as the contract for the online exam implementation.
+
+### Question source
+
+- Each level owns one active question bank containing 100 questions.
+- Questions are categorized as `true_false` or `multiple_choice`.
+- Every question has its answer choices and one configured correct answer.
+- An exam uses the question bank belonging to its assigned level.
+- Questions are not copied into each exam definition.
+
+### Per-student generation
+
+- Each student receives a separate random question set from the level's question bank.
+- Each generated set contains exactly 50 questions:
+  - 25 true/false questions.
+  - 25 multiple-choice questions.
+- Question overlap between students is allowed.
+- The selected questions are saved to the student's attempt and do not change on refresh.
+
+### Attempts
+
+- A student can have only one attempt for a specific exam.
+- The database must enforce uniqueness for the student and exam pair.
+- An attempt is either `in_progress` or `submitted`.
+- A submitted attempt is permanently locked and cannot be answered or submitted again.
+- Existing attempts are resumed rather than generating a new question set.
+
+### Submission and grading
+
+- Correct answers are never sent to the frontend before submission.
+- Answers are graded on the server using the answer key saved with the attempt.
+- Submission calculates the score and percentage immediately.
+- Unanswered questions receive zero points and are treated as wrong.
+- The submission response includes the complete review:
+  - Total score and percentage.
+  - Every question in the student's generated set.
+  - The student's answer.
+  - Whether the answer was correct or wrong.
+  - The correct answer for wrong or unanswered questions.
+
+### Exam eligibility
+
+- An exam cannot be opened unless its level has the required question bank.
+- The active bank must contain 100 questions, including at least 25 true/false and 25 multiple-choice questions.
+- Objective questions must have valid answer choices and exactly one correct answer.
+
+### Scope boundary
+
+Phase 1 defines rules only. Database models, migrations, APIs, frontend screens, and tests are implemented in later phases.
+
 ## Goal
 
 Replace the legacy PDF workflow with browser-based online exams. Teachers create exams and questions, students answer using their student code, objective questions are graded automatically, written answers are graded by teachers, and only approved results are published.

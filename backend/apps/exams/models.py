@@ -14,6 +14,38 @@ class Level(models.Model):
     def __str__(self):
         return self.name
 
+    def question_bank_errors(self):
+        active_questions = self.question_bank.filter(is_active=True).prefetch_related("choices")
+        questions = list(active_questions)
+        errors = []
+        true_false_count = sum(question.question_type == "true_false" for question in questions)
+        multiple_choice_count = sum(question.question_type == "multiple_choice" for question in questions)
+
+        if len(questions) != 100:
+            errors.append("The active question bank must contain exactly 100 questions.")
+        if true_false_count < 25:
+            errors.append("The active question bank must contain at least 25 true/false questions.")
+        if multiple_choice_count < 25:
+            errors.append("The active question bank must contain at least 25 multiple-choice questions.")
+
+        for question in questions:
+            if question.question_type not in {"true_false", "multiple_choice"}:
+                errors.append(f"Question {question.id} uses an unsupported question type.")
+                continue
+            choices = list(question.choices.all())
+            required_choice_count = 2 if question.question_type == "true_false" else 2
+            if len(choices) < required_choice_count:
+                errors.append(f"Question {question.id} must have at least two answer choices.")
+            if sum(choice.is_correct for choice in choices) != 1:
+                errors.append(f"Question {question.id} must have exactly one correct answer.")
+        return errors
+
+    def validate_question_bank(self):
+        errors = self.question_bank_errors()
+        if errors:
+            raise ValidationError({"question_bank": errors})
+        return True
+
 
 class Exam(models.Model):
     STATUS_CHOICES = [
@@ -44,6 +76,10 @@ class Exam(models.Model):
             raise ValidationError({"closes_at": "Closing time must be after opening time."})
         if self.status == "published" and not self.pk:
             raise ValidationError({"status": "Save the exam before publishing it."})
+        if self.status == "open":
+            if not self.level_id:
+                raise ValidationError({"level": "An open exam must be assigned to a level."})
+            self.level.validate_question_bank()
 
     @property
     def is_submission_open(self):
@@ -89,11 +125,26 @@ class Question(models.Model):
         ("written", "Written answer"),
     ]
 
-    section = models.ForeignKey(ExamSection, on_delete=models.CASCADE, related_name="questions")
+    level = models.ForeignKey(
+        Level,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="question_bank",
+    )
+    section = models.ForeignKey(
+        ExamSection,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="questions",
+    )
     prompt = models.TextField()
     question_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     points = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     order = models.PositiveIntegerField()
+    bank_order = models.PositiveIntegerField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
     answer_text = models.TextField(blank=True)
 
     class Meta:
@@ -103,13 +154,22 @@ class Question(models.Model):
                 fields=("section", "order"),
                 name="unique_section_question_order",
             ),
+            models.UniqueConstraint(
+                fields=("level", "bank_order"),
+                condition=models.Q(level__isnull=False, bank_order__isnull=False),
+                name="unique_level_question_bank_order",
+            ),
         ]
 
     def clean(self):
         if self.question_type in {"multiple_choice", "true_false"} and self.answer_text:
             raise ValidationError({"answer_text": "Objective questions use answer choices."})
+        if self.is_active and self.question_type not in {"multiple_choice", "true_false"}:
+            raise ValidationError({"question_type": "Active question banks support only objective questions."})
 
     def __str__(self):
+        if self.level_id:
+            return f"{self.level} - Question {self.bank_order or self.order}"
         return f"{self.section} - Question {self.order}"
 
 

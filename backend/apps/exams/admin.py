@@ -5,9 +5,13 @@ from .models import Exam, ExamSection, Level, Question, QuestionChoice
 
 @admin.register(Level)
 class LevelAdmin(admin.ModelAdmin):
-    list_display = ("name", "order", "is_active")
+    list_display = ("name", "order", "is_active", "question_bank_count")
     list_filter = ("is_active",)
     search_fields = ("name",)
+
+    @admin.display(description="Active questions")
+    def question_bank_count(self, level):
+        return level.question_bank.filter(is_active=True).count()
 
 
 @admin.register(ExamSection)
@@ -33,10 +37,10 @@ class QuestionChoiceInline(admin.TabularInline):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ("prompt", "section", "question_type", "points", "order")
-    list_filter = ("question_type", "section__exam")
+    list_display = ("prompt", "level", "question_type", "points", "bank_order", "is_active")
+    list_filter = ("question_type", "level", "is_active")
     search_fields = ("prompt",)
-    autocomplete_fields = ("section",)
+    autocomplete_fields = ("level", "section")
     inlines = (QuestionChoiceInline,)
 
 
@@ -55,3 +59,7 @@ class ExamAdmin(admin.ModelAdmin):
     list_filter = ("level", "status", "exam_date")
     autocomplete_fields = ("level",)
     inlines = (ExamSectionInline,)
+
+    def save_model(self, request, obj, form, change):
+        obj.full_clean()
+        super().save_model(request, obj, form, change)
