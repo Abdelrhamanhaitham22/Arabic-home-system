@@ -1,0 +1,11 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <h1>Import question bank for {{ level.name }}</h1>
+  <p>Upload a UTF-8 CSV. The file is validated completely before any questions are saved.</p>
+  <p><a href="{% url 'admin:exams_question_bank_template' %}">Download CSV template</a></p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <p><input type="file" name="csv_file" accept=".csv,text/csv" required></p>
+    <input type="submit" value="Import questions" class="default">
+  </form>
+{% endblock %}

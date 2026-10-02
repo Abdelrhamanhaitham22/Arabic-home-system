@@ -1,4 +1,5 @@
 import datetime
+from io import BytesIO
 from io import StringIO
 
 from django.core.management import CommandError, call_command
@@ -10,6 +11,7 @@ from rest_framework.test import APIClient
 from apps.students.models import Student
 
 from .models import Exam, ExamSection, Level, Question, QuestionChoice
+from .importers import import_question_bank
 
 
 class QuestionBankTests(TestCase):
@@ -114,6 +116,45 @@ class QuestionBankTests(TestCase):
 
         self.exam.status = "open"
         self.exam.full_clean()
+
+    def test_csv_import_creates_questions_and_choices(self):
+        csv_file = BytesIO(
+            b"bank_order,prompt,question_type,points,choice_1,choice_1_correct,choice_2,choice_2_correct,choice_3,choice_3_correct,choice_4,choice_4_correct\n"
+            b"1,Is Arabic a language?,true_false,1,True,true,False,false,,,,\n"
+            b"2,Choose Cairo,multiple_choice,1,Cairo,true,Alexandria,false,Giza,false, Luxor,false\n"
+        )
+        imported_count = import_question_bank(self.level, csv_file)
+
+        self.assertEqual(imported_count, 2)
+        self.assertEqual(self.level.question_bank.count(), 2)
+        self.assertEqual(self.level.question_bank.get(bank_order=2).choices.filter(is_correct=True).count(), 1)
+
+    def test_csv_import_rejects_invalid_true_false_row_without_partial_save(self):
+        csv_file = BytesIO(
+            b"bank_order,prompt,question_type,points,choice_1,choice_1_correct,choice_2,choice_2_correct,choice_3,choice_3_correct,choice_4,choice_4_correct\n"
+            b"1,Valid question,true_false,1,True,true,False,false,,,,\n"
+            b"2,Invalid question,true_false,1,True,true,False,false,Maybe,false,,\n"
+        )
+
+        with self.assertRaises(ValidationError):
+            import_question_bank(self.level, csv_file)
+
+        self.assertEqual(self.level.question_bank.count(), 0)
+
+    def test_csv_import_rejects_existing_bank_order(self):
+        Question.objects.create(
+            level=self.level, prompt="Existing", question_type="true_false", points=1,
+            order=1, bank_order=1,
+        )
+        csv_file = BytesIO(
+            b"bank_order,prompt,question_type,points,choice_1,choice_1_correct,choice_2,choice_2_correct,choice_3,choice_3_correct,choice_4,choice_4_correct\n"
+            b"1,Duplicate,true_false,1,True,true,False,false,,,,\n"
+        )
+
+        with self.assertRaises(ValidationError):
+            import_question_bank(self.level, csv_file)
+
+        self.assertEqual(self.level.question_bank.count(), 1)
 
 
 class AvailableExamApiTests(TestCase):
