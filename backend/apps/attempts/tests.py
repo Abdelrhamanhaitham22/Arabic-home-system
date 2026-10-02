@@ -16,8 +16,8 @@ class AttemptApiTests(TestCase):
             level=self.level, name="Online exam", max_score=50,
             exam_date=datetime.date(2026, 10, 2), status="open", time_limit_minutes=45,
         )
-        for number in range(1, 101):
-            question_type = "true_false" if number <= 50 else "multiple_choice"
+        for number in range(1, 201):
+            question_type = "true_false" if number <= 100 else "multiple_choice"
             question = Question.objects.create(
                 level=self.level, prompt=f"Question {number}", question_type=question_type,
                 points=1, order=number, bank_order=number,

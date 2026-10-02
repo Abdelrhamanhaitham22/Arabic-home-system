@@ -72,7 +72,7 @@ class QuestionBankTests(TestCase):
     def test_incomplete_question_bank_reports_missing_requirements(self):
         errors = self.level.question_bank_errors()
 
-        self.assertIn("The active question bank must contain exactly 100 questions.", errors)
+        self.assertIn("The active question bank must contain exactly 200 questions.", errors)
         self.assertIn("The active question bank must contain at least 25 true/false questions.", errors)
         self.assertIn("The active question bank must contain at least 25 multiple-choice questions.", errors)
 
@@ -91,8 +91,8 @@ class QuestionBankTests(TestCase):
         self.assertIn("Question %s must have exactly one correct answer." % question.id, self.level.question_bank_errors())
 
     def test_complete_question_bank_is_valid(self):
-        for bank_order in range(1, 101):
-            question_type = "true_false" if bank_order <= 50 else "multiple_choice"
+        for bank_order in range(1, 201):
+            question_type = "true_false" if bank_order <= 100 else "multiple_choice"
             question = Question.objects.create(
                 level=self.level,
                 prompt=f"Question {bank_order}",
@@ -180,8 +180,8 @@ class AvailableExamApiTests(TestCase):
         )
         QuestionChoice.objects.create(question=true_false, text="True", order=1, is_correct=True)
         QuestionChoice.objects.create(question=true_false, text="False", order=2)
-        for bank_order in range(3, 101):
-            question_type = "true_false" if bank_order <= 50 else "multiple_choice"
+        for bank_order in range(3, 201):
+            question_type = "true_false" if bank_order <= 100 else "multiple_choice"
             question = Question.objects.create(
                 level=self.level,
                 prompt=f"Bank question {bank_order}",

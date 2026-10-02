@@ -2,6 +2,7 @@
 {% block object-tools-items %}
   {% if original %}
     <li><a href="{% url 'admin:exams_level_import_questions' original.id %}">Import question bank</a></li>
+    <li><a href="{% url 'admin:exams_level_import_word_questions' original.id %}">Import Word questions</a></li>
   {% endif %}
   {{ block.super }}
 {% endblock %}

@@ -1,0 +1,16 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <h1>Import Word questions for {{ level.name }}</h1>
+  <p>Use one labeled question block, with a blank line between blocks.</p>
+  <pre>Question: كلمة بها اللام القمرية
+Option 1: المدرسة
+Option 2: شجرة
+Option 3: سماء
+Correct answer: المدرسة
+Question type: multiple_choice</pre>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <p><input type="file" name="word_file" accept=".docx" required></p>
+    <input type="submit" value="Import Word questions" class="default">
+  </form>
+{% endblock %}

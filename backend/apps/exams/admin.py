@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 
 from .models import Exam, Level, Question, QuestionChoice
 from .importers import CSV_COLUMNS, import_question_bank
+from .word_importers import import_question_bank_from_word
 
 
 @admin.register(Level)
@@ -22,6 +23,7 @@ class LevelAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path("<int:level_id>/import-questions/", self.admin_site.admin_view(self.import_questions), name="exams_level_import_questions"),
+            path("<int:level_id>/import-word-questions/", self.admin_site.admin_view(self.import_word_questions), name="exams_level_import_word_questions"),
             path("question-bank-template.csv", self.admin_site.admin_view(self.question_bank_template), name="exams_question_bank_template"),
         ]
         return custom_urls + urls
@@ -47,6 +49,19 @@ class LevelAdmin(admin.ModelAdmin):
         writer.writerow((1, "Is Arabic a language?", "true_false", 1, "True", "true", "False", "false", "", "", "", ""))
         writer.writerow((2, "Choose the capital of Egypt.", "multiple_choice", 1, "Cairo", "true", "Alexandria", "false", "Giza", "false", "Luxor", "false"))
         return response
+
+    def import_word_questions(self, request, level_id):
+        level = get_object_or_404(Level, id=level_id)
+        if request.method == "POST":
+            try:
+                imported_count = import_question_bank_from_word(level, request.FILES["word_file"])
+            except (KeyError, ValidationError) as error:
+                message = error.messages[0] if isinstance(error, ValidationError) else "Choose a Word file."
+                self.message_user(request, message, level=messages.ERROR)
+            else:
+                self.message_user(request, f"Imported {imported_count} questions into {level.name}.", messages.SUCCESS)
+                return redirect(reverse("admin:exams_level_change", args=(level.id,)))
+        return render(request, "admin/exams/level/import_word_questions.html", {"level": level, "title": "Import Word questions"})
 
     @admin.display(description="Active questions")
     def question_bank_count(self, level):
