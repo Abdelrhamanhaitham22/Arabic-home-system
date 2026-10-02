@@ -78,7 +78,9 @@ class Exam(models.Model):
         if self.status == "open":
             if not self.level_id:
                 raise ValidationError({"level": "An open exam must be assigned to a level."})
-            self.level.validate_question_bank()
+            errors = self.level.question_bank_errors()
+            if errors:
+                raise ValidationError({"level": errors})
 
     @property
     def is_submission_open(self):

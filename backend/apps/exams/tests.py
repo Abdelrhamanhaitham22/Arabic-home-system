@@ -5,6 +5,7 @@ from io import StringIO
 from django.core.management import CommandError, call_command
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.forms import modelform_factory
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -271,3 +272,22 @@ class SeedLevel6ExamCommandTests(TestCase):
             call_command("seed_level_6_exam", "--exam-date", "2026-10-01", "--open")
         self.assertEqual(Exam.objects.count(), 1)
         self.assertEqual(Exam.objects.get().status, "draft")
+
+    def test_open_exam_form_reports_incomplete_bank_without_server_error(self):
+        level = Level.objects.create(name="Level 6", order=6)
+        form = modelform_factory(Exam, fields="__all__")(
+            data={
+                "level": level.pk,
+                "name": "Level 6 Final Exam",
+                "max_score": 50,
+                "exam_date": "2026-10-01",
+                "status": "open",
+                "opens_at": "",
+                "closes_at": "",
+                "time_limit_minutes": 45,
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("level", form.errors)
+        self.assertIn("exactly 200", form.errors["level"][0])
