@@ -138,3 +138,19 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
   .exam-submit-form { grid-template-columns: 1fr; }
   .exam-submit-form .submit-button, .exam-submit-form .form-error { grid-column: auto; }
 }
+
+@media (max-width: 900px) {
+  .attempt-layout { display: flex; flex-direction: column; gap: var(--space-4); }
+  .attempt-question { order: 1; min-width: 0; width: 100%; padding: var(--space-3); }
+  .question-nav { order: 2; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; }
+  .question-nav button { min-height: 36px; }
+  .teacher-heading h1 { max-width: 100%; font-size: clamp(2rem, 9vw, 3.5rem); overflow-wrap: anywhere; }
+  .attempt-question h2 { font-size: clamp(1.25rem, 6vw, 1.8rem); overflow-wrap: anywhere; }
+}
+
+@media (max-width: 760px) {
+  .site-header { height: auto; min-height: 76px; flex-wrap: wrap; padding: 14px 0 0; }
+  .site-header nav { width: 100%; justify-content: space-between; gap: 8px; overflow-x: auto; padding-bottom: 14px; }
+  .site-header nav a { flex: 0 0 auto; }
+  .site-header nav a::after { bottom: -14px; }
+}
