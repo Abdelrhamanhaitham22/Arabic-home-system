@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 
 from apps.students.models import Student
 
-from .models import Exam, ExamSection, Level, Question, QuestionChoice
+from .models import Exam, Level, Question, QuestionChoice
 from .importers import import_question_bank
 
 
@@ -23,17 +23,9 @@ class QuestionBankTests(TestCase):
             max_score=50,
             exam_date=datetime.date(2026, 9, 30),
         )
-        self.section = ExamSection.objects.create(
-            exam=self.exam,
-            name="Objective",
-            max_score=50,
-            order=1,
-        )
-
     def test_question_belongs_to_level_question_bank(self):
         question = Question.objects.create(
             level=self.level,
-            section=self.section,
             prompt="Is this true?",
             question_type="true_false",
             points=1,
@@ -169,11 +161,8 @@ class AvailableExamApiTests(TestCase):
             status="open",
             time_limit_minutes=45,
         )
-        ExamSection.objects.create(exam=self.exam, name="Reading", max_score=100, order=1)
-        section = self.exam.sections.get()
         multiple_choice = Question.objects.create(
             level=self.level,
-            section=section,
             prompt="Choose the greeting.",
             question_type="multiple_choice",
             points=2,
@@ -184,7 +173,6 @@ class AvailableExamApiTests(TestCase):
         QuestionChoice.objects.create(question=multiple_choice, text="Another", order=3)
         true_false = Question.objects.create(
             level=self.level,
-            section=section,
             prompt="Is this true?",
             question_type="true_false",
             points=5,
@@ -275,14 +263,11 @@ class SeedLevel6ExamCommandTests(TestCase):
         self.assertEqual(exam.max_score, 50)
         self.assertEqual(exam.exam_date, datetime.date(2026, 10, 1))
         self.assertEqual(exam.status, "draft")
-        self.assertEqual(list(exam.sections.values_list("name", "max_score", "order")), [("Questions", 50, 1)])
-        self.assertIn("one Questions section", output.getvalue())
+        self.assertNotIn("section", output.getvalue().lower())
 
     def test_seed_is_idempotent_and_open_is_explicit(self):
         call_command("seed_level_6_exam", "--exam-date", "2026-10-01")
         with self.assertRaises(CommandError):
             call_command("seed_level_6_exam", "--exam-date", "2026-10-01", "--open")
         self.assertEqual(Exam.objects.count(), 1)
-        self.assertEqual(ExamSection.objects.count(), 1)
-        self.assertEqual(ExamSection.objects.get().name, "Questions")
         self.assertEqual(Exam.objects.get().status, "draft")

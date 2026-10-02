@@ -3,7 +3,7 @@ import datetime
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from apps.exams.models import Exam, ExamSection, Level, Question, QuestionChoice
+from apps.exams.models import Exam, Level, Question, QuestionChoice
 from apps.results.models import Result
 from apps.students.models import Student
 
@@ -16,11 +16,10 @@ class AttemptApiTests(TestCase):
             level=self.level, name="Online exam", max_score=50,
             exam_date=datetime.date(2026, 10, 2), status="open", time_limit_minutes=45,
         )
-        section = ExamSection.objects.create(exam=self.exam, name="Questions", max_score=50, order=1)
         for number in range(1, 101):
             question_type = "true_false" if number <= 50 else "multiple_choice"
             question = Question.objects.create(
-                level=self.level, section=section, prompt=f"Question {number}", question_type=question_type,
+                level=self.level, prompt=f"Question {number}", question_type=question_type,
                 points=1, order=number, bank_order=number,
             )
             QuestionChoice.objects.create(question=question, text="Correct", order=1, is_correct=True)

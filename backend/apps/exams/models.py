@@ -93,31 +93,6 @@ class Exam(models.Model):
         return f"{self.name} ({self.exam_date})"
 
 
-class ExamSection(models.Model):
-    DEFAULT_NAME = "Questions"
-
-    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="sections")
-    name = models.CharField(max_length=100, default=DEFAULT_NAME)
-    max_score = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-    order = models.PositiveIntegerField()
-
-    class Meta:
-        ordering = ("order",)
-        constraints = [
-            models.UniqueConstraint(
-                fields=("exam", "order"),
-                name="unique_exam_section_order",
-            ),
-            models.UniqueConstraint(
-                fields=("exam", "name"),
-                name="unique_exam_section_name",
-            ),
-        ]
-
-    def __str__(self):
-        return f"{self.exam.name} - {self.name}"
-
-
 class Question(models.Model):
     TYPE_CHOICES = [
         ("multiple_choice", "Multiple choice"),
@@ -133,28 +108,17 @@ class Question(models.Model):
         blank=True,
         related_name="question_bank",
     )
-    section = models.ForeignKey(
-        ExamSection,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="questions",
-    )
     prompt = models.TextField()
     question_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     points = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-    order = models.PositiveIntegerField()
+    order = models.PositiveIntegerField(default=0)
     bank_order = models.PositiveIntegerField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     answer_text = models.TextField(blank=True)
 
     class Meta:
-        ordering = ("order",)
+        ordering = ("bank_order", "order", "id")
         constraints = [
-            models.UniqueConstraint(
-                fields=("section", "order"),
-                name="unique_section_question_order",
-            ),
             models.UniqueConstraint(
                 fields=("level", "bank_order"),
                 condition=models.Q(level__isnull=False, bank_order__isnull=False),
@@ -171,7 +135,7 @@ class Question(models.Model):
     def __str__(self):
         if self.level_id:
             return f"{self.level} - Question {self.bank_order or self.order}"
-        return f"{self.section} - Question {self.order}"
+        return f"Question {self.order}"
 
 
 class QuestionChoice(models.Model):

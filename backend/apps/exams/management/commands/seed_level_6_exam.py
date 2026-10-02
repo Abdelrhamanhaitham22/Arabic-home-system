@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from apps.exams.models import Exam, ExamSection, Level
+from apps.exams.models import Exam, Level
 
 
 MAX_SCORE = 50
@@ -57,17 +57,5 @@ class Command(BaseCommand):
             if changed_fields:
                 exam.save(update_fields=changed_fields)
 
-            section, section_created = ExamSection.objects.get_or_create(
-                exam=exam,
-                order=1,
-                defaults={"name": ExamSection.DEFAULT_NAME, "max_score": MAX_SCORE},
-            )
-            if not section_created and (
-                section.name != ExamSection.DEFAULT_NAME or section.max_score != MAX_SCORE
-            ):
-                section.name = ExamSection.DEFAULT_NAME
-                section.max_score = MAX_SCORE
-                section.save(update_fields=("name", "max_score"))
-
         action = "Created" if created else "Verified"
-        self.stdout.write(self.style.SUCCESS(f"{action} {exam.name} with one Questions section ({MAX_SCORE} points)."))
+        self.stdout.write(self.style.SUCCESS(f"{action} {exam.name} ({MAX_SCORE} points)."))

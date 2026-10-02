@@ -1,13 +1,7 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 
-from .models import Result, SectionScore
-
-
-class SectionScoreInline(admin.TabularInline):
-    model = SectionScore
-    extra = 0
-    autocomplete_fields = ("section",)
+from .models import Result
 
 
 @admin.register(Result)
@@ -16,7 +10,6 @@ class ResultAdmin(admin.ModelAdmin):
     search_fields = ("student__student_code", "student__full_name")
     list_filter = ("exam", "published", "created_at")
     autocomplete_fields = ("student", "exam")
-    inlines = (SectionScoreInline,)
     actions = ("publish_selected_results",)
 
     @admin.display(description="Percentage")
