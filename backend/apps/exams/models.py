@@ -21,8 +21,8 @@ class Level(models.Model):
         true_false_count = sum(question.question_type == "true_false" for question in questions)
         multiple_choice_count = sum(question.question_type == "multiple_choice" for question in questions)
 
-        if len(questions) != 200:
-            errors.append("The active question bank must contain exactly 200 questions.")
+        if not 100 <= len(questions) <= 300:
+            errors.append("The active question bank must contain between 100 and 300 questions.")
         if true_false_count < 25:
             errors.append("The active question bank must contain at least 25 true/false questions.")
         if multiple_choice_count < 25:

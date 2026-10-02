@@ -73,7 +73,7 @@ class QuestionBankTests(TestCase):
     def test_incomplete_question_bank_reports_missing_requirements(self):
         errors = self.level.question_bank_errors()
 
-        self.assertIn("The active question bank must contain exactly 200 questions.", errors)
+        self.assertIn("The active question bank must contain between 100 and 300 questions.", errors)
         self.assertIn("The active question bank must contain at least 25 true/false questions.", errors)
         self.assertIn("The active question bank must contain at least 25 multiple-choice questions.", errors)
 
@@ -242,7 +242,8 @@ class AvailableExamApiTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_incomplete_question_bank_hides_exam_and_blocks_detail(self):
-        Question.objects.filter(level=self.level).first().delete()
+        question_ids = list(Question.objects.filter(level=self.level).order_by("id").values_list("id", flat=True)[:101])
+        Question.objects.filter(id__in=question_ids).delete()
 
         list_response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
         detail_response = self.client.get(
@@ -290,4 +291,4 @@ class SeedLevel6ExamCommandTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("level", form.errors)
-        self.assertIn("exactly 200", form.errors["level"][0])
+        self.assertIn("between 100 and 300", form.errors["level"][0])
