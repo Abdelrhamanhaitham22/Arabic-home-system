@@ -84,6 +84,3 @@ class ExamAdmin(admin.ModelAdmin):
     search_fields = ("name",)
     list_filter = ("level", "status", "exam_date")
     autocomplete_fields = ("level",)
-    def save_model(self, request, obj, form, change):
-        obj.full_clean()
-        super().save_model(request, obj, form, change)
