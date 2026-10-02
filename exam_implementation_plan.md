@@ -84,6 +84,17 @@ Replace the legacy PDF workflow with browser-based online exams. Teachers create
 - Add opening date, closing date, and time limit.
 - Support draft, open, closed, and published statuses.
 
+## Phase 4: Level-Based Exam Structure
+
+- Keep exam configuration limited to level, schedule, time limit, status, and score settings.
+- Use the assigned level's active question bank as the only source of exam questions.
+- Keep one `Questions` section as the exam's admin container for all question-bank questions.
+- Divide questions inside that section by question type: True/False and Multiple Choice.
+- Keep sections out of the student exam API; students receive the generated question set later.
+- Keep legacy section-score records compatible until attempt-based grading replaces them.
+- Set the standard generated exam maximum to 50 points, one point per selected question.
+- Prevent an exam from opening unless its level question bank passes validation.
+
 ## Phase 4: Teacher Exam Management
 
 - Allow authorized teachers to create and edit assigned-level exams.

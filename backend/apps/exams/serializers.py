@@ -3,11 +3,6 @@ from rest_framework import serializers
 from .models import Exam, QuestionChoice
 
 
-class ExamSectionSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    max_score = serializers.IntegerField()
-
-
 class QuestionChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuestionChoice
@@ -23,32 +18,22 @@ class ExamQuestionSerializer(serializers.Serializer):
     choices = QuestionChoiceSerializer(many=True, read_only=True)
 
 
-class ExamSectionDetailSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField()
-    max_score = serializers.IntegerField()
-    order = serializers.IntegerField()
-    questions = ExamQuestionSerializer(many=True, read_only=True)
-
-
 class AvailableExamSerializer(serializers.ModelSerializer):
     level = serializers.CharField(source="level.name", allow_null=True)
-    sections = ExamSectionSerializer(many=True, read_only=True)
     class Meta:
         model = Exam
         fields = (
             "id", "name", "level", "max_score", "exam_date", "opens_at", "closes_at",
-            "time_limit_minutes", "sections",
+            "time_limit_minutes",
         )
 
 
 class AvailableExamDetailSerializer(serializers.ModelSerializer):
     level = serializers.CharField(source="level.name", allow_null=True)
-    sections = ExamSectionDetailSerializer(many=True, read_only=True)
 
     class Meta:
         model = Exam
         fields = (
             "id", "name", "level", "max_score", "exam_date", "opens_at", "closes_at",
-            "time_limit_minutes", "sections",
+            "time_limit_minutes",
         )

@@ -33,8 +33,7 @@ class Level(models.Model):
                 errors.append(f"Question {question.id} uses an unsupported question type.")
                 continue
             choices = list(question.choices.all())
-            required_choice_count = 2 if question.question_type == "true_false" else 2
-            if len(choices) < required_choice_count:
+            if len(choices) < 2:
                 errors.append(f"Question {question.id} must have at least two answer choices.")
             if sum(choice.is_correct for choice in choices) != 1:
                 errors.append(f"Question {question.id} must have exactly one correct answer.")
@@ -95,8 +94,10 @@ class Exam(models.Model):
 
 
 class ExamSection(models.Model):
+    DEFAULT_NAME = "Questions"
+
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="sections")
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, default=DEFAULT_NAME)
     max_score = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     order = models.PositiveIntegerField()
 

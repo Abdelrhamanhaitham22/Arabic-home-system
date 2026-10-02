@@ -28,7 +28,7 @@ class AvailableExamListView(APIView):
         exams = Exam.objects.filter(status="open", level_id=student.level_id).filter(
             models.Q(opens_at__isnull=True) | models.Q(opens_at__lte=current_time),
             models.Q(closes_at__isnull=True) | models.Q(closes_at__gte=current_time),
-        ).select_related("level").prefetch_related("sections", "level__question_bank__choices")
+        ).select_related("level").prefetch_related("level__question_bank__choices")
         available_exams = [exam for exam in exams if not exam.level.question_bank_errors()]
         return Response(AvailableExamSerializer(available_exams, many=True, context={"request": request}).data)
 
@@ -51,9 +51,7 @@ class AvailableExamDetailView(APIView):
             ).filter(
                 models.Q(opens_at__isnull=True) | models.Q(opens_at__lte=current_time),
                 models.Q(closes_at__isnull=True) | models.Q(closes_at__gte=current_time),
-            ).select_related("level").prefetch_related(
-                "sections__questions__choices", "level__question_bank__choices"
-            )
+            ).select_related("level").prefetch_related("level__question_bank__choices")
         )
         if exam.level.question_bank_errors():
             return Response(

@@ -47,6 +47,8 @@ class QuestionAdmin(admin.ModelAdmin):
 class ExamSectionInline(admin.TabularInline):
     model = ExamSection
     extra = 0
+    max_num = 1
+    can_delete = False
 
 
 @admin.register(Exam)

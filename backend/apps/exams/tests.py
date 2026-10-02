@@ -191,11 +191,9 @@ class AvailableExamApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["time_limit_minutes"], 45)
-        questions = response.data["sections"][0]["questions"]
-        self.assertEqual(len(questions), 2)
-        self.assertEqual(questions[0]["question_type"], "multiple_choice")
-        self.assertEqual(questions[0]["choices"][0]["text"], "مرحبا")
-        self.assertNotIn("is_correct", questions[0]["choices"][0])
+        self.assertNotIn("sections", response.data)
+        self.assertEqual(response.data["max_score"], 100)
+        self.assertNotIn("questions", response.data)
 
     def test_exam_detail_rejects_student_from_another_level(self):
         other_level = Level.objects.create(name="Level 7", order=7)
@@ -233,19 +231,17 @@ class SeedLevel6ExamCommandTests(TestCase):
         call_command("seed_level_6_exam", "--exam-date", "2026-10-01", stdout=output)
         exam = Exam.objects.get(name="Level 6 Final Exam")
         self.assertEqual(exam.level.name, "Level 6")
-        self.assertEqual(exam.max_score, 80)
+        self.assertEqual(exam.max_score, 50)
         self.assertEqual(exam.exam_date, datetime.date(2026, 10, 1))
         self.assertEqual(exam.status, "draft")
-        self.assertEqual(list(exam.sections.values_list("name", "max_score")), [
-            ("Reading", 15), ("Vocabulary", 15), ("Grammar", 15),
-            ("Writing", 15), ("Listening", 10), ("Dictation", 10),
-        ])
-        self.assertIn("6 sections (80 points)", output.getvalue())
+        self.assertEqual(list(exam.sections.values_list("name", "max_score", "order")), [("Questions", 50, 1)])
+        self.assertIn("one Questions section", output.getvalue())
 
     def test_seed_is_idempotent_and_open_is_explicit(self):
         call_command("seed_level_6_exam", "--exam-date", "2026-10-01")
         with self.assertRaises(CommandError):
             call_command("seed_level_6_exam", "--exam-date", "2026-10-01", "--open")
         self.assertEqual(Exam.objects.count(), 1)
-        self.assertEqual(ExamSection.objects.count(), 6)
+        self.assertEqual(ExamSection.objects.count(), 1)
+        self.assertEqual(ExamSection.objects.get().name, "Questions")
         self.assertEqual(Exam.objects.get().status, "draft")

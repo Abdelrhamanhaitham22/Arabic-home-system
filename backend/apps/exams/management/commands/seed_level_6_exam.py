@@ -7,19 +7,11 @@ from django.db import transaction
 from apps.exams.models import Exam, ExamSection, Level
 
 
-SECTIONS = (
-    ("Reading", 15),
-    ("Vocabulary", 15),
-    ("Grammar", 15),
-    ("Writing", 15),
-    ("Listening", 10),
-    ("Dictation", 10),
-)
-MAX_SCORE = sum(max_score for _, max_score in SECTIONS)
+MAX_SCORE = 50
 
 
 class Command(BaseCommand):
-    help = "Create the Level 6 final exam and its scoring sections."
+    help = "Create the Level 6 final exam backed by its level question bank."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -65,20 +57,17 @@ class Command(BaseCommand):
             if changed_fields:
                 exam.save(update_fields=changed_fields)
 
-            section_names = [name for name, _ in SECTIONS]
-            ExamSection.objects.filter(exam=exam).exclude(name__in=section_names).delete()
-            for order, (name, max_score) in enumerate(SECTIONS, start=1):
-                section, created_section = ExamSection.objects.get_or_create(
-                    exam=exam,
-                    name=name,
-                    defaults={"max_score": max_score, "order": order},
-                )
-                if not created_section and (
-                    section.max_score != max_score or section.order != order
-                ):
-                    section.max_score = max_score
-                    section.order = order
-                    section.save(update_fields=("max_score", "order"))
+            section, section_created = ExamSection.objects.get_or_create(
+                exam=exam,
+                order=1,
+                defaults={"name": ExamSection.DEFAULT_NAME, "max_score": MAX_SCORE},
+            )
+            if not section_created and (
+                section.name != ExamSection.DEFAULT_NAME or section.max_score != MAX_SCORE
+            ):
+                section.name = ExamSection.DEFAULT_NAME
+                section.max_score = MAX_SCORE
+                section.save(update_fields=("name", "max_score"))
 
         action = "Created" if created else "Verified"
-        self.stdout.write(self.style.SUCCESS(f"{action} {exam.name} with {len(SECTIONS)} sections ({MAX_SCORE} points)."))
+        self.stdout.write(self.style.SUCCESS(f"{action} {exam.name} with one Questions section ({MAX_SCORE} points)."))
