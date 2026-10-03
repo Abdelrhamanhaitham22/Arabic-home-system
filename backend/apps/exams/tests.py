@@ -147,6 +147,11 @@ class QuestionBankTests(TestCase):
         })
 
         self.assertEqual(exam.source_allocations.get().question_count, 2)
+        self.assertEqual(exam.selected_questions.count(), 2)
+        self.assertEqual(
+            list(exam.selected_questions.values_list("display_order", flat=True)),
+            [1, 2],
+        )
         self.assertEqual(exam.max_score / exam.question_count, Decimal("1.50"))
 
     def test_exam_generator_rejects_allocation_above_source_capacity(self):

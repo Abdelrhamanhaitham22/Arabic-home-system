@@ -76,17 +76,12 @@ class StartExamView(APIView):
         if existing:
             return attempt_response(existing)
 
-        allocations = list(exam.source_allocations.select_related("source"))
-        if allocations:
-            selected = []
-            points = exam.max_score / exam.question_count
-            for allocation in allocations:
-                questions = list(allocation.source.questions.filter(is_active=True).prefetch_related("choices"))
-                if len(questions) < allocation.question_count:
-                    return Response({"error": "question_source_incomplete", "message": "This exam is not ready yet."}, status=409)
-                selected.extend(random.sample(questions, allocation.question_count))
-            if len(selected) != exam.question_count:
+        selected_exam_questions = list(exam.selected_questions.select_related("question").order_by("display_order"))
+        if selected_exam_questions:
+            if len(selected_exam_questions) != exam.question_count:
                 return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
+            selected = [selected_question.question for selected_question in selected_exam_questions]
+            points = exam.max_score / exam.question_count
         else:
             questions = list(exam.level.question_bank.filter(is_active=True).prefetch_related("choices"))
             true_false = [question for question in questions if question.question_type == "true_false"]
@@ -95,10 +90,9 @@ class StartExamView(APIView):
                 return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
             selected = random.sample(true_false, 25) + random.sample(multiple_choice, 25)
             points = exam.max_score / len(selected)
-        random.shuffle(selected)
         try:
             with transaction.atomic():
-                attempt = ExamAttempt.objects.create(student=student, exam=exam, max_score=sum(q.points for q in selected))
+                attempt = ExamAttempt.objects.create(student=student, exam=exam, max_score=exam.max_score)
                 AttemptQuestion.objects.bulk_create([
                     AttemptQuestion(
                         attempt=attempt,

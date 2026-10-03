@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 
-from .models import Exam, ExamSourceAllocation
+from .models import Exam, ExamQuestion, ExamSourceAllocation
 
 
 def validate_exam_configuration(configuration):
@@ -42,15 +42,22 @@ def create_exam(configuration):
         ExamSourceAllocation(exam=exam, source=item["source"], question_count=item["question_count"])
         for item in configuration["allocations"]
     ])
+    selected = []
+    for item in configuration["allocations"]:
+        available = list(item["source"].questions.filter(is_active=True).prefetch_related("choices"))
+        selected.extend(random.sample(available, item["question_count"]))
+    random.shuffle(selected)
+    ExamQuestion.objects.bulk_create([
+        ExamQuestion(exam=exam, question=question, display_order=index)
+        for index, question in enumerate(selected, start=1)
+    ])
     return exam
 
 
 def preview_exam_questions(exam):
-    questions = []
-    for allocation in exam.source_allocations.select_related("source").prefetch_related("source__questions"):
-        available = list(allocation.source.questions.filter(is_active=True).prefetch_related("choices"))
-        questions.extend(random.sample(available, allocation.question_count))
-    random.shuffle(questions)
+    questions = [selected.question for selected in exam.selected_questions.select_related(
+        "question__subject", "question__source"
+    ).prefetch_related("question__choices")]
     points = exam.max_score / exam.question_count
     return [{
         "prompt": question.prompt,

@@ -3,7 +3,7 @@ import datetime
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from apps.exams.models import Exam, Level, Question, QuestionChoice
+from apps.exams.models import Exam, ExamQuestion, Level, Question, QuestionChoice
 from apps.results.models import Result
 from apps.students.models import Student
 
@@ -50,6 +50,19 @@ class AttemptApiTests(TestCase):
         second = self.start()
         self.assertEqual(first.data["id"], second.data["id"])
         self.assertEqual([q["id"] for q in first.data["questions"]], [q["id"] for q in second.data["questions"]])
+
+    def test_generated_exam_uses_persisted_questions_for_every_attempt(self):
+        selected = list(self.level.question_bank.order_by("id")[:50])
+        for order, question in enumerate(selected, start=1):
+            ExamQuestion.objects.create(exam=self.exam, question=question, display_order=order)
+
+        first = self.start()
+        second = self.start(self.other_student)
+
+        self.assertEqual(
+            [question["question_text_snapshot"] for question in first.data["questions"]],
+            [question["question_text_snapshot"] for question in second.data["questions"]],
+        )
 
     def test_student_cannot_access_another_students_attempt(self):
         attempt = self.start().data["id"]

@@ -173,6 +173,22 @@ class ExamSourceAllocation(models.Model):
         return f"{self.exam.name} - {self.source.original_filename}: {self.question_count}"
 
 
+class ExamQuestion(models.Model):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="selected_questions")
+    question = models.ForeignKey("Question", on_delete=models.PROTECT, related_name="selected_for_exams")
+    display_order = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ("display_order",)
+        constraints = [
+            models.UniqueConstraint(fields=("exam", "question"), name="unique_exam_selected_question"),
+            models.UniqueConstraint(fields=("exam", "display_order"), name="unique_exam_selected_order"),
+        ]
+
+    def __str__(self):
+        return f"{self.exam.name} - Question {self.display_order}"
+
+
 class Question(models.Model):
     TYPE_CHOICES = [
         ("multiple_choice", "Multiple choice"),
