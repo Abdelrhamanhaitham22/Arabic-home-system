@@ -141,6 +141,8 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
 .source-allocation-row span { display: grid; gap: 5px; }
 .source-allocation-row small { color: var(--muted); font-family: 'DM Mono'; font-size: 10px; }
 .source-allocation-row input { width: 100px; min-height: 44px; border: 1px solid var(--line); padding: 0 10px; font: inherit; }
+.source-allocation-row input { text-align: center; font-family: 'DM Mono'; }
+.source-allocation-row small + small { color: var(--primary); }
 .created-exam { margin-top: var(--space-5); padding: var(--space-4); border-inline-start: 3px solid var(--primary); background: var(--mint); }
 .created-exam h2 { margin: 0 0 8px; }
 .created-exam p:not(.result-label) { color: var(--muted); }

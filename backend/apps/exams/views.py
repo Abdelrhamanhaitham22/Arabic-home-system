@@ -121,6 +121,7 @@ class AdminExamGeneratorDataView(APIView):
                 "sources": [{
                     "id": source.id,
                     "subject": source.subject.name,
+                    "folder": source.subject.name,
                     "filename": source.original_filename,
                     "available_questions": source.question_count,
                 } for source in level.question_sources.filter(is_active=True)]
