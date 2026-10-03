@@ -7,11 +7,12 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.forms import modelform_factory
 from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 
 from apps.students.models import Student
 
-from .models import Exam, Level, Question, QuestionChoice
+from .models import Exam, Level, Question, QuestionChoice, QuestionSource, Subject
 from .importers import import_question_bank
 
 
@@ -36,6 +37,37 @@ class QuestionBankTests(TestCase):
 
         self.assertEqual(list(self.level.question_bank.all()), [question])
         self.assertTrue(question.is_active)
+
+    def test_subject_belongs_to_level_and_question_can_reference_source(self):
+        subject = Subject.objects.create(level=self.level, name="نحو")
+        source = QuestionSource.objects.create(
+            level=self.level,
+            subject=subject,
+            file=SimpleUploadedFile("grammar.docx", b"questions"),
+            original_filename="grammar.docx",
+        )
+        question = Question.objects.create(
+            level=self.level,
+            subject=subject,
+            source=source,
+            prompt="Is this true?",
+            question_type="true_false",
+            points=1,
+            order=1,
+            bank_order=1,
+        )
+
+        self.assertEqual(subject.level, self.level)
+        self.assertEqual(source.question_count, 1)
+        self.assertEqual(question.source, source)
+
+    def test_source_rejects_subject_from_another_level(self):
+        other_level = Level.objects.create(name="Level 7", order=7)
+        subject = Subject.objects.create(level=other_level, name="صرف")
+        source = QuestionSource(level=self.level, subject=subject, original_filename="morphology.docx")
+
+        with self.assertRaises(ValidationError):
+            source.full_clean()
 
     def test_question_bank_order_is_unique_per_level(self):
         Question.objects.create(

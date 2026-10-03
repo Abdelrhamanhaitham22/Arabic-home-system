@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.core.exceptions import ValidationError
 
-from .models import Exam, Level, Question, QuestionChoice
+from .models import Exam, Level, Question, QuestionChoice, QuestionSource, Subject
 from .importers import CSV_COLUMNS, import_question_bank
 from .word_importers import import_question_bank_from_word
 
@@ -76,6 +76,31 @@ class QuestionChoiceAdmin(admin.ModelAdmin):
     autocomplete_fields = ("question",)
 
 
+@admin.register(Subject)
+class SubjectAdmin(admin.ModelAdmin):
+    list_display = ("name", "level", "is_active", "question_count")
+    list_filter = ("level", "is_active")
+    search_fields = ("name", "level__name")
+    autocomplete_fields = ("level",)
+
+    @admin.display(description="Active questions")
+    def question_count(self, subject):
+        return subject.questions.filter(is_active=True).count()
+
+
+@admin.register(QuestionSource)
+class QuestionSourceAdmin(admin.ModelAdmin):
+    list_display = ("original_filename", "level", "subject", "is_active", "uploaded_at", "question_count")
+    list_filter = ("level", "subject", "is_active")
+    search_fields = ("original_filename", "level__name", "subject__name")
+    autocomplete_fields = ("level", "subject")
+    readonly_fields = ("uploaded_at",)
+
+    @admin.display(description="Active questions")
+    def question_count(self, source):
+        return source.question_count
+
+
 class QuestionChoiceInline(admin.TabularInline):
     model = QuestionChoice
     extra = 0
@@ -83,10 +108,10 @@ class QuestionChoiceInline(admin.TabularInline):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ("prompt", "level", "question_type", "points", "bank_order", "is_active")
-    list_filter = ("question_type", "level", "is_active")
+    list_display = ("prompt", "level", "subject", "source", "question_type", "points", "bank_order", "is_active")
+    list_filter = ("question_type", "level", "subject", "source", "is_active")
     search_fields = ("prompt",)
-    autocomplete_fields = ("level",)
+    autocomplete_fields = ("level", "subject", "source")
     inlines = (QuestionChoiceInline,)
 
 

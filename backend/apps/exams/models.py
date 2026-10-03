@@ -46,6 +46,44 @@ class Level(models.Model):
         return True
 
 
+class Subject(models.Model):
+    level = models.ForeignKey(Level, on_delete=models.CASCADE, related_name="subjects")
+    name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("name",)
+        constraints = [
+            models.UniqueConstraint(fields=("level", "name"), name="unique_subject_name_per_level"),
+        ]
+
+    def __str__(self):
+        return f"{self.level} - {self.name}"
+
+
+class QuestionSource(models.Model):
+    level = models.ForeignKey(Level, on_delete=models.CASCADE, related_name="question_sources")
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="question_sources")
+    file = models.FileField(upload_to="question-banks/%Y/%m/")
+    original_filename = models.CharField(max_length=255)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("-uploaded_at", "id")
+
+    def clean(self):
+        if self.subject_id and self.level_id and self.subject.level_id != self.level_id:
+            raise ValidationError({"subject": "The subject must belong to the selected level."})
+
+    @property
+    def question_count(self):
+        return self.questions.filter(is_active=True).count()
+
+    def __str__(self):
+        return f"{self.level} - {self.subject.name} - {self.original_filename}"
+
+
 class Exam(models.Model):
     STATUS_CHOICES = [
         ("draft", "Draft"),
@@ -110,6 +148,20 @@ class Question(models.Model):
         blank=True,
         related_name="question_bank",
     )
+    subject = models.ForeignKey(
+        Subject,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="questions",
+    )
+    source = models.ForeignKey(
+        QuestionSource,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="questions",
+    )
     prompt = models.TextField()
     question_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     points = models.PositiveIntegerField(validators=[MinValueValidator(1)])
@@ -129,6 +181,12 @@ class Question(models.Model):
         ]
 
     def clean(self):
+        if self.subject_id and self.level_id and self.subject.level_id != self.level_id:
+            raise ValidationError({"subject": "The subject must belong to the selected level."})
+        if self.source_id and self.level_id and self.source.level_id != self.level_id:
+            raise ValidationError({"source": "The source file must belong to the selected level."})
+        if self.source_id and self.subject_id and self.source.subject_id != self.subject_id:
+            raise ValidationError({"source": "The source file must belong to the selected subject."})
         if self.question_type in {"multiple_choice", "true_false"} and self.answer_text:
             raise ValidationError({"answer_text": "Objective questions use answer choices."})
         if self.is_active and self.question_type not in {"multiple_choice", "true_false"}:
