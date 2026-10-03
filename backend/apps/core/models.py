@@ -43,3 +43,34 @@ class HomepageVideo(models.Model):
 
     def __str__(self):
         return self.title_ar
+
+
+class StaffProfile(models.Model):
+    ROLE_CHOICES = [
+        ("administrator", "Administrator"),
+        ("editor", "Editor"),
+        ("viewer", "Viewer"),
+    ]
+
+    user = models.OneToOneField("auth.User", on_delete=models.CASCADE, related_name="staff_profile")
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="viewer")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.get_username()} ({self.get_role_display()})"
+
+
+class AuditLog(models.Model):
+    actor = models.ForeignKey("auth.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="audit_logs")
+    action = models.CharField(max_length=100)
+    target_type = models.CharField(max_length=100)
+    target_id = models.CharField(max_length=100, blank=True)
+    details = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+
+    def __str__(self):
+        return f"{self.action} - {self.target_type} {self.target_id}"

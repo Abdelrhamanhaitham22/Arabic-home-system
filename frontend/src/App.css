@@ -147,6 +147,16 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
 .generator-preview { display: grid; gap: 1px; margin-top: var(--space-4); border: 1px solid var(--line); background: var(--line); }
 .generator-preview article { display: grid; gap: 6px; padding: 14px; background: white; }
 .generator-preview small { color: var(--muted); font-family: 'DM Mono'; font-size: 10px; }
+.staff-admin-page { max-width: 1040px; }
+.staff-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); align-items: end; margin-top: var(--space-5); }
+.staff-form .form-error { grid-column: 1 / -1; }
+.staff-list { margin-top: var(--space-5); border-top: 1px solid var(--ink); }
+.staff-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 16px 0; border-bottom: 1px solid var(--line); }
+.staff-row strong, .staff-row small { display: block; }
+.staff-row small { margin-top: 5px; color: var(--muted); font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; }
+.audit-list { margin-top: var(--space-6); padding: 20px; background: var(--mint); }
+.audit-list p:not(.result-label) { margin: 8px 0 0; color: var(--muted); font-family: 'DM Mono'; font-size: 11px; }
+@media (max-width: 760px) { .staff-form { grid-template-columns: 1fr; } .staff-form .button { width: 100%; } }
 
 @media (max-width: 760px) {
   .exam-lookup-form { margin-top: var(--space-5); }

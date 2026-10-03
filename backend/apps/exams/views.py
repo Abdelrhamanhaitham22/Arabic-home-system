@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from apps.students.models import Student
 from .generator import create_exam, preview_exam_questions
 from .models import Exam, Level, QuestionSource
+from apps.core.services import has_staff_role, record_audit, staff_role
 from .serializers import AvailableExamDetailSerializer, AvailableExamSerializer
 
 
@@ -79,8 +80,8 @@ class AvailableExamDetailView(APIView):
 
 
 def admin_error(request):
-    if not request.user.is_authenticated or not request.user.is_staff:
-        return Response({"message": "Administrator access required."}, status=status.HTTP_403_FORBIDDEN)
+    if not request.user.is_authenticated or not has_staff_role(request.user, "viewer"):
+        return Response({"message": "Staff access required."}, status=status.HTTP_403_FORBIDDEN)
     return None
 
 
@@ -105,7 +106,7 @@ class AdminSessionView(APIView):
     def get(self, request):
         if (error := admin_error(request)):
             return error
-        return Response({"username": request.user.get_username()})
+        return Response({"username": request.user.get_username(), "role": staff_role(request.user), "is_superuser": request.user.is_superuser})
 
 
 class AdminExamGeneratorDataView(APIView):
@@ -131,6 +132,8 @@ class AdminExamGeneratorView(APIView):
     def post(self, request):
         if (error := admin_error(request)):
             return error
+        if not has_staff_role(request.user, "editor"):
+            return Response({"message": "Editor access required."}, status=status.HTTP_403_FORBIDDEN)
         try:
             level = Level.objects.get(id=request.data.get("level_id"), is_active=True)
             allocations = self.parse_allocations(level, request.data.get("allocations", []))
@@ -149,6 +152,7 @@ class AdminExamGeneratorView(APIView):
                 raise ValueError("Exam name is required.")
             with transaction.atomic():
                 exam = create_exam(configuration)
+                record_audit(request.user, "exam.created", "Exam", exam.id, {"name": exam.name, "question_count": exam.question_count})
         except (Level.DoesNotExist, QuestionSource.DoesNotExist, ValueError, InvalidOperation, TypeError, ValidationError) as error:
             message = error.messages[0] if isinstance(error, ValidationError) else str(error)
             return Response({"message": message}, status=status.HTTP_400_BAD_REQUEST)
@@ -188,6 +192,8 @@ class AdminExamStatusView(APIView):
     def post(self, request, exam_id):
         if (error := admin_error(request)):
             return error
+        if not has_staff_role(request.user, "editor"):
+            return Response({"message": "Editor access required."}, status=status.HTTP_403_FORBIDDEN)
         exam = get_object_or_404(Exam, id=exam_id)
         next_status = request.data.get("status")
         if next_status not in {"open", "closed"}:
@@ -199,4 +205,5 @@ class AdminExamStatusView(APIView):
             except ValidationError as error:
                 return Response({"message": error.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
         exam.save(update_fields=("status",))
+        record_audit(request.user, "exam.status_changed", "Exam", exam.id, {"status": next_status})
         return Response(AdminExamGeneratorView.serialize_exam(exam))
