@@ -12,8 +12,8 @@ class ExamAttempt(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="in_progress")
     started_at = models.DateTimeField(auto_now_add=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
-    score = models.PositiveIntegerField(default=0)
-    max_score = models.PositiveIntegerField(default=0)
+    score = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    max_score = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     percentage = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
 
     class Meta:
@@ -52,7 +52,7 @@ class AttemptQuestion(models.Model):
         "exams.Question", on_delete=models.SET_NULL, null=True, blank=True, related_name="attempt_snapshots"
     )
     display_order = models.PositiveIntegerField()
-    points_snapshot = models.PositiveIntegerField()
+    points_snapshot = models.DecimalField(max_digits=8, decimal_places=2)
     question_text_snapshot = models.TextField()
     question_type_snapshot = models.CharField(max_length=20)
     choices_snapshot = models.JSONField(default=list)
@@ -76,7 +76,7 @@ class StudentAnswer(models.Model):
     )
     selected_answer_value = models.TextField(blank=True)
     is_correct = models.BooleanField(null=True, blank=True)
-    points_earned = models.PositiveIntegerField(default=0)
+    points_earned = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     answered_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):

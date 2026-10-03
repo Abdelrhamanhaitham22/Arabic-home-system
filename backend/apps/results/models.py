@@ -16,8 +16,8 @@ class Result(models.Model):
     attempt = models.OneToOneField(
         "attempts.ExamAttempt", on_delete=models.SET_NULL, null=True, blank=True, related_name="result"
     )
-    score = models.PositiveIntegerField()
-    max_score = models.PositiveIntegerField(default=0)
+    score = models.DecimalField(max_digits=8, decimal_places=2)
+    max_score = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     submission_status = models.CharField(max_length=20, choices=SUBMISSION_STATUS_CHOICES, default="pending")
     published = models.BooleanField(default=False)

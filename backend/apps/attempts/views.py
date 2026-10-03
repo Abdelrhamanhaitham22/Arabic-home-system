@@ -1,4 +1,5 @@
 import random
+from decimal import Decimal
 
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
@@ -75,13 +76,25 @@ class StartExamView(APIView):
         if existing:
             return attempt_response(existing)
 
-        questions = list(exam.level.question_bank.filter(is_active=True).prefetch_related("choices"))
-        true_false = [question for question in questions if question.question_type == "true_false"]
-        multiple_choice = [question for question in questions if question.question_type == "multiple_choice"]
-        if len(true_false) < 25 or len(multiple_choice) < 25:
-            return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
-
-        selected = random.sample(true_false, 25) + random.sample(multiple_choice, 25)
+        allocations = list(exam.source_allocations.select_related("source"))
+        if allocations:
+            selected = []
+            points = exam.max_score / exam.question_count
+            for allocation in allocations:
+                questions = list(allocation.source.questions.filter(is_active=True).prefetch_related("choices"))
+                if len(questions) < allocation.question_count:
+                    return Response({"error": "question_source_incomplete", "message": "This exam is not ready yet."}, status=409)
+                selected.extend(random.sample(questions, allocation.question_count))
+            if len(selected) != exam.question_count:
+                return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
+        else:
+            questions = list(exam.level.question_bank.filter(is_active=True).prefetch_related("choices"))
+            true_false = [question for question in questions if question.question_type == "true_false"]
+            multiple_choice = [question for question in questions if question.question_type == "multiple_choice"]
+            if len(true_false) < 25 or len(multiple_choice) < 25:
+                return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
+            selected = random.sample(true_false, 25) + random.sample(multiple_choice, 25)
+            points = exam.max_score / len(selected)
         random.shuffle(selected)
         try:
             with transaction.atomic():
@@ -91,7 +104,7 @@ class StartExamView(APIView):
                         attempt=attempt,
                         original_question=question,
                         display_order=index,
-                        points_snapshot=question.points,
+                        points_snapshot=points,
                         question_text_snapshot=question.prompt,
                         question_type_snapshot=question.question_type,
                         choices_snapshot=[{"id": choice.id, "text": choice.text} for choice in random.sample(list(question.choices.all()), len(question.choices.all()))],
@@ -164,7 +177,7 @@ class SubmitAttemptView(APIView):
             is_correct = bool(answer and ((answer.selected_choice_id and answer.selected_choice_id == question.correct_answer_snapshot.get("choice_id")) or (answer.selected_answer_value and answer.selected_answer_value == question.correct_answer_snapshot.get("value"))))
             if answer:
                 answer.is_correct = is_correct
-                answer.points_earned = question.points_snapshot if is_correct else 0
+                answer.points_earned = question.points_snapshot if is_correct else Decimal("0")
                 answer.answered_at = answer.answered_at or now
                 answer.save(update_fields=("is_correct", "points_earned", "answered_at"))
                 score += answer.points_earned

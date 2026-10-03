@@ -1,4 +1,6 @@
 from django.core.exceptions import ValidationError
+from decimal import Decimal
+
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
@@ -100,7 +102,8 @@ class Exam(models.Model):
         related_name="exams",
     )
     name = models.CharField(max_length=255)
-    max_score = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    max_score = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    question_count = models.PositiveIntegerField(default=50, validators=[MinValueValidator(1)])
     exam_date = models.DateField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="draft")
     opens_at = models.DateTimeField(null=True, blank=True)
@@ -116,9 +119,25 @@ class Exam(models.Model):
         if self.status == "open":
             if not self.level_id:
                 raise ValidationError({"level": "An open exam must be assigned to a level."})
-            errors = self.level.question_bank_errors()
-            if errors:
-                raise ValidationError({"level": errors})
+            self.validate_generation()
+
+    def validate_generation(self):
+        allocations = list(self.source_allocations.select_related("source"))
+        if not allocations and self.pk:
+            return True
+        errors = []
+        if not allocations:
+            errors.append("Add at least one question-source allocation.")
+        if sum(allocation.question_count for allocation in allocations) != self.question_count:
+            errors.append("Allocated question counts must equal the exam question count.")
+        for allocation in allocations:
+            if allocation.source.level_id != self.level_id:
+                errors.append("Every question source must belong to the exam level.")
+            if allocation.question_count > allocation.source.question_count:
+                errors.append(f"{allocation.source.original_filename} does not contain enough active questions.")
+        if errors:
+            raise ValidationError({"question_count": errors})
+        return True
 
     @property
     def is_submission_open(self):
@@ -131,6 +150,27 @@ class Exam(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.exam_date})"
+
+
+class ExamSourceAllocation(models.Model):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="source_allocations")
+    source = models.ForeignKey(QuestionSource, on_delete=models.PROTECT, related_name="exam_allocations")
+    question_count = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+
+    class Meta:
+        ordering = ("source__subject__name", "source__original_filename")
+        constraints = [
+            models.UniqueConstraint(fields=("exam", "source"), name="unique_exam_question_source"),
+        ]
+
+    def clean(self):
+        if self.exam_id and self.source_id and self.exam.level_id != self.source.level_id:
+            raise ValidationError({"source": "The source file must belong to the exam level."})
+        if self.question_count > self.source.question_count:
+            raise ValidationError({"question_count": "The requested count exceeds the available questions."})
+
+    def __str__(self):
+        return f"{self.exam.name} - {self.source.original_filename}: {self.question_count}"
 
 
 class Question(models.Model):
@@ -164,7 +204,7 @@ class Question(models.Model):
     )
     prompt = models.TextField()
     question_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    points = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    points = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
     order = models.PositiveIntegerField(default=0)
     bank_order = models.PositiveIntegerField(null=True, blank=True)
     is_active = models.BooleanField(default=True)

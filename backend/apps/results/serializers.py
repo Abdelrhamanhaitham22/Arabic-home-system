@@ -6,7 +6,7 @@ from .models import Result
 class ResultItemSerializer(serializers.ModelSerializer):
     exam_name = serializers.CharField(source="exam.name")
     level = serializers.CharField(source="exam.level.name", allow_null=True)
-    max_score = serializers.IntegerField(source="exam.max_score")
+    max_score = serializers.DecimalField(source="exam.max_score", max_digits=8, decimal_places=2)
     exam_date = serializers.DateField(source="exam.exam_date")
     percentage = serializers.SerializerMethodField()
     sections = serializers.SerializerMethodField()

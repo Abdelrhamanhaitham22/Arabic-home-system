@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 from io import BytesIO
 from io import StringIO
 
@@ -13,6 +14,7 @@ from docx import Document
 
 from apps.students.models import Student
 
+from .generator import create_exam
 from .models import Exam, Level, Question, QuestionChoice, QuestionSource, Subject
 from .importers import import_question_bank
 from .word_importers import import_question_banks_from_word
@@ -114,6 +116,57 @@ class QuestionBankTests(TestCase):
 
         self.assertEqual(QuestionSource.objects.count(), 0)
         self.assertEqual(self.level.question_bank.count(), 0)
+
+    def test_exam_generator_saves_allocations_and_points_per_question(self):
+        subject = Subject.objects.create(level=self.level, name="نحو")
+        source = QuestionSource.objects.create(
+            level=self.level,
+            subject=subject,
+            file=SimpleUploadedFile("grammar.docx", b"questions"),
+            original_filename="grammar.docx",
+        )
+        for order in range(1, 3):
+            Question.objects.create(
+                level=self.level,
+                subject=subject,
+                source=source,
+                prompt=f"Question {order}",
+                question_type="true_false",
+                points=1,
+                order=order,
+                bank_order=order,
+            )
+
+        exam = create_exam({
+            "level": self.level,
+            "name": "Generated exam",
+            "max_score": Decimal("3.00"),
+            "question_count": 2,
+            "exam_date": datetime.date(2026, 10, 3),
+            "allocations": [{"source": source, "question_count": 2}],
+        })
+
+        self.assertEqual(exam.source_allocations.get().question_count, 2)
+        self.assertEqual(exam.max_score / exam.question_count, Decimal("1.50"))
+
+    def test_exam_generator_rejects_allocation_above_source_capacity(self):
+        subject = Subject.objects.create(level=self.level, name="صرف")
+        source = QuestionSource.objects.create(
+            level=self.level,
+            subject=subject,
+            file=SimpleUploadedFile("morphology.docx", b"questions"),
+            original_filename="morphology.docx",
+        )
+
+        with self.assertRaises(ValidationError):
+            create_exam({
+                "level": self.level,
+                "name": "Invalid exam",
+                "max_score": Decimal("75"),
+                "question_count": 50,
+                "exam_date": datetime.date(2026, 10, 3),
+                "allocations": [{"source": source, "question_count": 50}],
+            })
 
     def test_question_bank_order_is_unique_per_level(self):
         Question.objects.create(
