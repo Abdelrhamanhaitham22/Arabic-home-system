@@ -9,11 +9,33 @@ from django.forms import modelform_factory
 from django.test import TestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
+from docx import Document
 
 from apps.students.models import Student
 
 from .models import Exam, Level, Question, QuestionChoice, QuestionSource, Subject
 from .importers import import_question_bank
+from .word_importers import import_question_banks_from_word
+
+
+def word_file(filename, question, correct="True"):
+    document = Document()
+    for line in (
+        f"Question: {question}",
+        "Option 1: True",
+        "Option 2: False",
+        f"Correct answer: {correct}",
+        "Question type: true_false",
+        "",
+    ):
+        document.add_paragraph(line)
+    content = BytesIO()
+    document.save(content)
+    return SimpleUploadedFile(
+        filename,
+        content.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
 
 
 class QuestionBankTests(TestCase):
@@ -68,6 +90,30 @@ class QuestionBankTests(TestCase):
 
         with self.assertRaises(ValidationError):
             source.full_clean()
+
+    def test_multiple_word_files_create_sources_and_link_questions(self):
+        subject = Subject.objects.create(level=self.level, name="نحو")
+        imported_count = import_question_banks_from_word(
+            self.level,
+            subject,
+            [word_file("grammar-one.docx", "First question"), word_file("grammar-two.docx", "Second question")],
+        )
+
+        self.assertEqual(imported_count, 2)
+        self.assertEqual(QuestionSource.objects.filter(level=self.level, subject=subject).count(), 2)
+        self.assertEqual(self.level.question_bank.filter(source__isnull=False).count(), 2)
+        filenames = set(self.level.question_bank.values_list("source__original_filename", flat=True))
+        self.assertEqual(filenames, {"grammar-one.docx", "grammar-two.docx"})
+
+    def test_word_import_rejects_subject_from_another_level_without_saving(self):
+        other_level = Level.objects.create(name="Level 7", order=7)
+        subject = Subject.objects.create(level=other_level, name="صرف")
+
+        with self.assertRaises(ValidationError):
+            import_question_banks_from_word(self.level, subject, [word_file("morphology.docx", "Question")])
+
+        self.assertEqual(QuestionSource.objects.count(), 0)
+        self.assertEqual(self.level.question_bank.count(), 0)
 
     def test_question_bank_order_is_unique_per_level(self):
         Question.objects.create(

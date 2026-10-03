@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from docx import Document
 
-from .models import Level, Question, QuestionChoice
+from .models import Level, Question, QuestionChoice, QuestionSource, Subject
 
 
 FIELD_NAMES = {
@@ -61,20 +61,53 @@ def parse_question_block(block, bank_order):
     return block["question"], question_type, choices
 
 
-def import_question_bank_from_word(level: Level, uploaded_file):
+def parse_uploaded_word_file(uploaded_file, start_order):
     try:
         blocks = read_question_blocks(uploaded_file)
-        start_order = level.question_bank.count() + 1
-        parsed = [parse_question_block(block, start_order + index) for index, block in enumerate(blocks)]
+        return [parse_question_block(block, start_order + index) for index, block in enumerate(blocks)]
     except ValidationError:
         raise
     except Exception as error:
         raise ValidationError("The uploaded file is not a readable Word document.") from error
+
+
+def import_question_banks_from_word(level: Level, subject: Subject, uploaded_files):
+    if subject.level_id != level.id:
+        raise ValidationError("The selected subject must belong to this level.")
+    if not uploaded_files:
+        raise ValidationError("Choose at least one Word file.")
+
+    next_order = level.question_bank.count() + 1
+    parsed_files = []
+    for uploaded_file in uploaded_files:
+        parsed = parse_uploaded_word_file(uploaded_file, next_order)
+        parsed_files.append((uploaded_file, parsed))
+        next_order += len(parsed)
+
     with transaction.atomic():
-        for bank_order, (prompt, question_type, choices) in enumerate(parsed, start=start_order):
-            question = Question.objects.create(level=level, prompt=prompt, question_type=question_type, points=1, order=bank_order, bank_order=bank_order)
-            QuestionChoice.objects.bulk_create([
-                QuestionChoice(question=question, text=text, order=index, is_correct=is_correct)
-                for index, (text, is_correct) in enumerate(choices, start=1)
-            ])
-    return len(parsed)
+        next_order = level.question_bank.count() + 1
+        for uploaded_file, parsed in parsed_files:
+            uploaded_file.seek(0)
+            source = QuestionSource.objects.create(
+                level=level,
+                subject=subject,
+                file=uploaded_file,
+                original_filename=uploaded_file.name,
+            )
+            for bank_order, (prompt, question_type, choices) in enumerate(parsed, start=next_order):
+                question = Question.objects.create(
+                    level=level,
+                    subject=subject,
+                    source=source,
+                    prompt=prompt,
+                    question_type=question_type,
+                    points=1,
+                    order=bank_order,
+                    bank_order=bank_order,
+                )
+                QuestionChoice.objects.bulk_create([
+                    QuestionChoice(question=question, text=text, order=index, is_correct=is_correct)
+                    for index, (text, is_correct) in enumerate(choices, start=1)
+                ])
+            next_order += len(parsed)
+    return sum(len(parsed) for _, parsed in parsed_files)

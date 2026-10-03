@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% block content %}
   <h1>Import Word questions for {{ level.name }}</h1>
-  <p>Use one labeled question block, with a blank line between blocks.</p>
+  <p>Choose a subject and upload one or more Word files. Use one labeled question block, with a blank line between blocks.</p>
   <pre>Question: كلمة بها اللام القمرية
 Option 1: المدرسة
 Option 2: شجرة
@@ -10,7 +10,16 @@ Correct answer: المدرسة
 Question type: multiple_choice</pre>
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    <p><input type="file" name="word_file" accept=".docx" required></p>
+    <p>
+      <label for="subject_id">Subject:</label>
+      <select id="subject_id" name="subject_id" required>
+        <option value="">Choose a subject</option>
+        {% for subject in subjects %}
+          <option value="{{ subject.id }}">{{ subject.name }}</option>
+        {% endfor %}
+      </select>
+    </p>
+    <p><input type="file" name="word_files" accept=".docx" multiple required></p>
     <input type="submit" value="Import Word questions" class="default">
   </form>
 {% endblock %}
