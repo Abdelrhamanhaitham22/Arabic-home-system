@@ -3,6 +3,8 @@ from django.urls import path
 from .views import (
     AdminExamGeneratorDataView,
     AdminExamGeneratorView,
+    AdminExamManagementView,
+    AdminExamEditView,
     AdminExamPreviewView,
     AdminExamStatusView,
     AdminLoginView,
@@ -19,6 +21,8 @@ urlpatterns = [
     path("admin-session/me/", AdminSessionView.as_view(), name="admin-session"),
     path("admin-generator/data/", AdminExamGeneratorDataView.as_view(), name="admin-exam-generator-data"),
     path("admin-generator/exams/", AdminExamGeneratorView.as_view(), name="admin-exam-generator-create"),
+    path("admin-management/exams/", AdminExamManagementView.as_view(), name="admin-exam-management"),
+    path("admin-management/exams/<int:exam_id>/", AdminExamEditView.as_view(), name="admin-exam-edit"),
     path("admin-generator/exams/<int:exam_id>/preview/", AdminExamPreviewView.as_view(), name="admin-exam-generator-preview"),
     path("admin-generator/exams/<int:exam_id>/status/", AdminExamStatusView.as_view(), name="admin-exam-generator-status"),
     path("", AvailableExamListView.as_view(), name="available-exams"),

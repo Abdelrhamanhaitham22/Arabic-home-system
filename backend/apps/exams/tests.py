@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.forms import modelform_factory
 from django.test import TestCase
+from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from docx import Document
@@ -15,7 +16,7 @@ from docx import Document
 from apps.students.models import Student
 
 from .generator import create_exam
-from .models import Exam, Level, Question, QuestionChoice, QuestionSource, Subject
+from .models import Exam, ExamQuestion, Level, Question, QuestionChoice, QuestionSource, Subject
 from .importers import import_question_bank
 from .word_importers import import_question_banks_from_word
 
@@ -172,6 +173,65 @@ class QuestionBankTests(TestCase):
                 "exam_date": datetime.date(2026, 10, 3),
                 "allocations": [{"source": source, "question_count": 50}],
             })
+
+    def test_exam_management_lists_and_duplicates_exam(self):
+        admin = get_user_model().objects.create_superuser("owner", "owner@example.com", "password")
+        subject = Subject.objects.create(level=self.level, name="نحو")
+        source = QuestionSource.objects.create(
+            level=self.level,
+            subject=subject,
+            file=SimpleUploadedFile("grammar.docx", b"questions"),
+            original_filename="grammar.docx",
+        )
+        question = Question.objects.create(
+            level=self.level,
+            subject=subject,
+            source=source,
+            prompt="Question",
+            question_type="true_false",
+            points=1,
+            order=1,
+            bank_order=1,
+        )
+        generated = create_exam({
+            "level": self.level,
+            "name": "Generated exam",
+            "max_score": Decimal("1.00"),
+            "question_count": 1,
+            "exam_date": datetime.date(2026, 10, 3),
+            "allocations": [{"source": source, "question_count": 1}],
+        })
+        self.client.force_login(admin)
+
+        listed = self.client.get("/api/exams/admin-management/exams/")
+        duplicated = self.client.post(
+            "/api/exams/admin-management/exams/",
+            {"exam_id": generated.id},
+            format="json",
+        )
+
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(duplicated.status_code, 201)
+        duplicate = Exam.objects.exclude(id=generated.id).get()
+        self.assertEqual(duplicate.selected_questions.count(), 1)
+        self.assertEqual(duplicate.selected_questions.get().question_id, question.id)
+
+    def test_exam_status_is_locked_after_attempt_starts(self):
+        admin = get_user_model().objects.create_superuser("owner", "owner@example.com", "password")
+        student = Student.objects.create(full_name="Student", phone_number="1", address="Cairo", passport_number="P-1", level=self.level)
+        Exam.objects.filter(id=self.exam.id).update(status="open")
+        from apps.attempts.models import ExamAttempt
+
+        ExamAttempt.objects.create(student=student, exam=self.exam, max_score=Decimal("50.00"))
+        self.client.force_login(admin)
+
+        response = self.client.post(
+            f"/api/exams/admin-generator/exams/{self.exam.id}/status/",
+            {"status": "closed"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 409)
 
     def test_question_bank_order_is_unique_per_level(self):
         Question.objects.create(

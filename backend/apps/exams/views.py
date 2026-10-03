@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.students.models import Student
-from .generator import create_exam, preview_exam_questions
+from .generator import create_exam, preview_exam_questions, update_exam
 from .models import Exam, Level, QuestionSource
 from apps.core.services import has_staff_role, record_audit, staff_role
 from .serializers import AvailableExamDetailSerializer, AvailableExamSerializer
@@ -188,6 +188,84 @@ class AdminExamPreviewView(APIView):
         return Response({"exam": AdminExamGeneratorView.serialize_exam(exam), "questions": preview_exam_questions(exam)})
 
 
+class AdminExamManagementView(APIView):
+    def get(self, request):
+        if (error := admin_error(request)):
+            return error
+        exams = Exam.objects.select_related("level").order_by("-created_at")
+        return Response([self.serialize_exam(exam) for exam in exams])
+
+    def post(self, request):
+        if (error := admin_error(request)):
+            return error
+        if not has_staff_role(request.user, "editor"):
+            return Response({"message": "Editor access required."}, status=status.HTTP_403_FORBIDDEN)
+        source_exam = get_object_or_404(Exam, id=request.data.get("exam_id"))
+        if source_exam.level_id is None:
+            return Response({"message": "The source exam must have a level."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            configuration = management_configuration(source_exam, request.data)
+            duplicate = create_exam(configuration)
+            duplicate.name = f"{source_exam.name} copy"
+            duplicate.save(update_fields=("name",))
+            record_audit(request.user, "exam.duplicated", "Exam", duplicate.id, {"source_exam": source_exam.id})
+        except (ValueError, InvalidOperation, TypeError, ValidationError) as error:
+            message = error.messages[0] if isinstance(error, ValidationError) else str(error)
+            return Response({"message": message}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.serialize_exam(duplicate), status=status.HTTP_201_CREATED)
+
+    @staticmethod
+    def serialize_exam(exam):
+        return {
+            "id": exam.id,
+            "name": exam.name,
+            "level": exam.level.name if exam.level_id else None,
+            "status": exam.status,
+            "question_count": exam.question_count,
+            "max_score": str(exam.max_score),
+            "has_attempts": exam.attempts.exists(),
+            "created_at": exam.created_at,
+        }
+
+
+class AdminExamEditView(APIView):
+    def patch(self, request, exam_id):
+        if (error := admin_error(request)):
+            return error
+        if not has_staff_role(request.user, "editor"):
+            return Response({"message": "Editor access required."}, status=status.HTTP_403_FORBIDDEN)
+        exam = get_object_or_404(Exam, id=exam_id)
+        if exam.status != "draft" or exam.attempts.exists():
+            return Response({"message": "Only untouched draft exams can be edited."}, status=status.HTTP_409_CONFLICT)
+        try:
+            configuration = management_configuration(exam, request.data)
+            update_exam(exam, configuration)
+        except (ValueError, InvalidOperation, TypeError, ValidationError) as error:
+            message = error.messages[0] if isinstance(error, ValidationError) else str(error)
+            return Response({"message": message}, status=status.HTTP_400_BAD_REQUEST)
+        record_audit(request.user, "exam.updated", "Exam", exam.id, {"name": exam.name})
+        return Response(AdminExamManagementView.serialize_exam(exam))
+
+
+def management_configuration(exam, payload):
+    allocations = []
+    for allocation in exam.source_allocations.select_related("source"):
+        allocation_payload = payload.get("allocations", {})
+        source_count = allocation_payload.get(str(allocation.source_id), allocation.question_count)
+        allocations.append({"source": allocation.source, "question_count": int(source_count)})
+    return {
+        "level": exam.level,
+        "name": str(payload.get("name", exam.name)).strip(),
+        "max_score": Decimal(str(payload.get("max_score", exam.max_score))),
+        "question_count": int(payload.get("question_count", exam.question_count)),
+        "exam_date": date.fromisoformat(payload.get("exam_date", str(exam.exam_date))),
+        "time_limit_minutes": payload.get("time_limit_minutes", exam.time_limit_minutes) or None,
+        "opens_at": parse_datetime(payload["opens_at"]) if payload.get("opens_at") else exam.opens_at,
+        "closes_at": parse_datetime(payload["closes_at"]) if payload.get("closes_at") else exam.closes_at,
+        "allocations": allocations,
+    }
+
+
 class AdminExamStatusView(APIView):
     def post(self, request, exam_id):
         if (error := admin_error(request)):
@@ -195,6 +273,8 @@ class AdminExamStatusView(APIView):
         if not has_staff_role(request.user, "editor"):
             return Response({"message": "Editor access required."}, status=status.HTTP_403_FORBIDDEN)
         exam = get_object_or_404(Exam, id=exam_id)
+        if exam.attempts.exists():
+            return Response({"message": "This exam is locked because student attempts have started."}, status=status.HTTP_409_CONFLICT)
         next_status = request.data.get("status")
         if next_status not in {"open", "closed"}:
             return Response({"message": "Status must be open or closed."}, status=status.HTTP_400_BAD_REQUEST)

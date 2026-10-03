@@ -54,6 +54,34 @@ def create_exam(configuration):
     return exam
 
 
+def update_exam(exam, configuration):
+    validate_exam_configuration(configuration)
+    exam.name = configuration["name"]
+    exam.max_score = configuration["max_score"]
+    exam.question_count = configuration["question_count"]
+    exam.exam_date = configuration["exam_date"]
+    exam.time_limit_minutes = configuration.get("time_limit_minutes")
+    exam.opens_at = configuration.get("opens_at")
+    exam.closes_at = configuration.get("closes_at")
+    exam.save()
+    exam.source_allocations.all().delete()
+    exam.selected_questions.all().delete()
+    ExamSourceAllocation.objects.bulk_create([
+        ExamSourceAllocation(exam=exam, source=item["source"], question_count=item["question_count"])
+        for item in configuration["allocations"]
+    ])
+    selected = []
+    for item in configuration["allocations"]:
+        available = list(item["source"].questions.filter(is_active=True).prefetch_related("choices"))
+        selected.extend(random.sample(available, item["question_count"]))
+    random.shuffle(selected)
+    ExamQuestion.objects.bulk_create([
+        ExamQuestion(exam=exam, question=question, display_order=index)
+        for index, question in enumerate(selected, start=1)
+    ])
+    return exam
+
+
 def preview_exam_questions(exam):
     questions = [selected.question for selected in exam.selected_questions.select_related(
         "question__subject", "question__source"

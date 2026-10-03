@@ -156,6 +156,13 @@ footer { width: min(1180px, calc(100% - 64px)); margin: auto; padding: 24px 0; d
 .staff-row small { margin-top: 5px; color: var(--muted); font-family: 'DM Mono'; font-size: 10px; text-transform: uppercase; }
 .audit-list { margin-top: var(--space-6); padding: 20px; background: var(--mint); }
 .audit-list p:not(.result-label) { margin: 8px 0 0; color: var(--muted); font-family: 'DM Mono'; font-size: 11px; }
+.exam-management-page { max-width: 1040px; }
+.managed-exams { margin-top: var(--space-5); border-top: 1px solid var(--ink); }
+.managed-exam { display: flex; justify-content: space-between; gap: var(--space-4); padding: 22px 0; border-bottom: 1px solid var(--line); }
+.managed-exam h2 { margin: 0 0 7px; font-size: 20px; }
+.managed-exam p:not(.result-label) { margin: 0; color: var(--muted); font-size: 13px; }
+.managed-exam-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+@media (max-width: 760px) { .managed-exam { align-items: stretch; flex-direction: column; } .managed-exam-actions { justify-content: space-between; } }
 @media (max-width: 760px) { .staff-form { grid-template-columns: 1fr; } .staff-form .button { width: 100%; } }
 
 @media (max-width: 760px) {
