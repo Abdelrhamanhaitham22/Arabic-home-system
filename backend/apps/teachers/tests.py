@@ -54,13 +54,13 @@ class TeacherPortalTests(TestCase):
         self.assertEqual(response.data["total_score"], 125.0)
         self.assertEqual(TeacherAssessment.objects.count(), 1)
 
-    def test_teacher_cannot_exceed_configured_limit(self):
+    def test_teacher_cannot_exceed_configured_teacher_section_limit(self):
         TeacherAssessmentConfig.objects.create(level=self.level, written_max=75)
         self.client.post("/api/teachers/login/", {"username": "teacher", "password": "secret"})
 
         response = self.client.put(
             f"/api/teachers/assessments/{self.student.student_code}/",
-            {"written_score": "76"},
+            {"activity_dictation_score": "51"},
             format="json",
         )
 

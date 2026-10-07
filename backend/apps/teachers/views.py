@@ -180,6 +180,15 @@ class TeacherAssessmentView(APIView):
                 return Response({"detail": f"{field} must be between 0 and {maximum}."}, status=status.HTTP_400_BAD_REQUEST)
             values[field] = value
         assessment, _ = TeacherAssessment.objects.update_or_create(student=student, level_id=student.level_id, defaults={**values, "teacher": request.user, "teacher_notes": str(request.data.get("teacher_notes", ""))[:5000]})
+        from apps.results.models import Result
+        total_score = assessment.total_score
+        total_max = config.total_max
+        Result.objects.filter(student=student, exam__level_id=student.level_id).update(
+            score=total_score,
+            max_score=total_max,
+            percentage=round((total_score / total_max) * 100, 2) if total_max else 0,
+            published=True,
+        )
         return Response(TeacherMeView.serialize_assessment(assessment))
 
 

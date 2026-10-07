@@ -13,7 +13,15 @@ class ResultItemSerializer(serializers.ModelSerializer):
     teacher_feedback = serializers.CharField(source="teacher_notes", read_only=True)
 
     def get_sections(self, result):
-        return [{"name": "Questions", "score": result.score, "max_score": result.max_score or result.exam.max_score, "comment": result.teacher_notes}]
+        assessment = result.student.teacher_assessments.filter(level_id=result.exam.level_id).first()
+        if assessment:
+            config = assessment.level.teacher_assessment_config
+            return [
+                {"name": "التحريري", "score": assessment.written_score, "max_score": config.written_max, "comment": ""},
+                {"name": "النشاط والإملاء", "score": assessment.activity_dictation_score, "max_score": config.activity_dictation_max, "comment": ""},
+                {"name": "الشفوي", "score": assessment.oral_score, "max_score": config.oral_max, "comment": result.teacher_notes},
+            ]
+        return [{"name": "التحريري", "score": result.score, "max_score": result.max_score or result.exam.max_score, "comment": result.teacher_notes}]
 
     def get_percentage(self, result):
         maximum = result.max_score or result.exam.max_score

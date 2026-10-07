@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 from apps.exams.models import Exam, ExamQuestion, Level, Question, QuestionChoice
 from apps.results.models import Result
 from apps.students.models import Student
+from apps.teachers.models import TeacherAssessment
 
 
 class AttemptApiTests(TestCase):
@@ -70,6 +71,12 @@ class AttemptApiTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_submit_grades_and_creates_result(self):
+        TeacherAssessment.objects.create(
+            student=self.student,
+            level=self.level,
+            activity_dictation_score=40,
+            oral_score=60,
+        )
         attempt = self.start().data
         first_question = attempt["questions"][0]
         correct_choice = next(choice for choice in first_question["choices"] if choice["text"] == "Correct")
@@ -85,7 +92,10 @@ class AttemptApiTests(TestCase):
         self.assertEqual(submitted.status_code, 200)
         self.assertEqual(submitted.data["status"], "submitted")
         self.assertIsNotNone(submitted.data["questions"][0]["correct_answer"])
-        self.assertEqual(Result.objects.get(attempt_id=attempt["id"]).score, 1)
+        result = Result.objects.get(attempt_id=attempt["id"])
+        self.assertEqual(result.score, 101)
+        self.assertTrue(result.published)
+        self.assertEqual(result.max_score, 200)
         locked = self.client.post(
             f"/api/exam-attempts/{attempt['id']}/answers/",
             {"student_code": self.student.student_code, "attempt_question_id": first_question["id"], "selected_choice_id": first_question["choices"][1]["id"]},
