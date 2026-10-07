@@ -146,6 +146,7 @@ class TeacherMeView(APIView):
             "student_code": student.student_code,
             "full_name": student.full_name,
             "level": student.level.name if student.level else None,
+            "level_id": student.level_id,
         }
 
     @staticmethod
@@ -169,7 +170,7 @@ class TeacherAssessmentView(APIView):
             return Response({"detail": "You can only assess students in an assigned level."}, status=status.HTTP_403_FORBIDDEN)
         config, _ = TeacherAssessmentConfig.objects.get_or_create(level_id=student.level_id)
         values = {}
-        for field in ("written_score", "activity_dictation_score", "oral_score"):
+        for field in ("activity_dictation_score", "oral_score"):
             try:
                 value = Decimal(str(request.data.get(field, 0)))
             except (InvalidOperation, TypeError):

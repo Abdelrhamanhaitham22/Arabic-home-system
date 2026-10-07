@@ -183,10 +183,16 @@ class SubmitAttemptView(APIView):
         attempt.save(update_fields=("score", "max_score", "percentage", "status", "submitted_at"))
 
         from apps.results.models import Result
+        from apps.teachers.models import TeacherAssessment
 
         Result.objects.update_or_create(
             student=attempt.student,
             exam=attempt.exam,
             defaults={"attempt": attempt, "score": score, "max_score": attempt.max_score, "percentage": attempt.percentage, "submission_status": "submitted"},
+        )
+        TeacherAssessment.objects.update_or_create(
+            student=attempt.student,
+            level=attempt.student.level,
+            defaults={"written_score": score},
         )
         return attempt_response(attempt)

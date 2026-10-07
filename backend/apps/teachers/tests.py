@@ -51,7 +51,7 @@ class TeacherPortalTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["total_score"], 200.0)
+        self.assertEqual(response.data["total_score"], 125.0)
         self.assertEqual(TeacherAssessment.objects.count(), 1)
 
     def test_teacher_cannot_exceed_configured_limit(self):
