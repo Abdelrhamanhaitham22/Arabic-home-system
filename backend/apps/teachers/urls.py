@@ -6,6 +6,8 @@ from .views import (
     TeacherLogoutView,
     TeacherMeView,
     TeacherSignupView,
+    TeacherAssessmentView,
+    TeacherAssessmentConfigView,
 )
 
 
@@ -15,4 +17,7 @@ urlpatterns = [
     path("login/", TeacherLoginView.as_view(), name="teacher-login"),
     path("logout/", TeacherLogoutView.as_view(), name="teacher-logout"),
     path("me/", TeacherMeView.as_view(), name="teacher-me"),
+    path("assessments/<str:student_code>/", TeacherAssessmentView.as_view(), name="teacher-assessment"),
+    path("assessment-config/", TeacherAssessmentConfigView.as_view(), name="teacher-assessment-config"),
+    path("assessment-config/<int:level_id>/", TeacherAssessmentConfigView.as_view(), name="teacher-assessment-config-level"),
 ]
