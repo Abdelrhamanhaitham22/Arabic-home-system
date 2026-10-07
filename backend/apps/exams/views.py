@@ -124,6 +124,8 @@ class AdminExamGeneratorDataView(APIView):
                     "folder": source.subject.name,
                     "filename": source.original_filename,
                     "available_questions": source.question_count,
+                    "multiple_choice_questions": source.questions.filter(is_active=True, question_type="multiple_choice").count(),
+                    "true_false_questions": source.questions.filter(is_active=True, question_type="true_false").count(),
                 } for source in level.question_sources.filter(is_active=True)]
             })
         return Response({"levels": levels})
@@ -143,6 +145,8 @@ class AdminExamGeneratorView(APIView):
                 "name": str(request.data.get("name", "")).strip(),
                 "max_score": Decimal(str(request.data.get("max_score"))),
                 "question_count": int(request.data.get("question_count")),
+                "multiple_choice_count": int(request.data.get("multiple_choice_count", int(request.data.get("question_count")) // 2)),
+                "true_false_count": int(request.data.get("true_false_count", int(request.data.get("question_count")) - int(request.data.get("question_count")) // 2)),
                 "exam_date": date.fromisoformat(request.data.get("exam_date")),
                 "time_limit_minutes": request.data.get("time_limit_minutes") or None,
                 "opens_at": parse_datetime(request.data["opens_at"]) if request.data.get("opens_at") else None,
