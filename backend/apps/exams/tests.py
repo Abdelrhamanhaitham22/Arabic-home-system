@@ -116,6 +116,29 @@ class QuestionBankTests(TestCase):
             import_question_banks_from_word(self.level, subject, [word_file("morphology.docx", "Question")])
 
         self.assertEqual(QuestionSource.objects.count(), 0)
+
+    def test_word_import_accepts_arabic_true_false_choices(self):
+        subject = Subject.objects.create(level=self.level, name="Grammar")
+        document = Document()
+        for line in (
+            "Question: الجملة تبدأ بفعل",
+            "Option 1: صح",
+            "Option 2: خطأ",
+            "Correct Answer: صح",
+            "Question Type: true_false",
+            "",
+        ):
+            document.add_paragraph(line)
+        content = BytesIO()
+        document.save(content)
+        uploaded = SimpleUploadedFile("arabic-true-false.docx", content.getvalue())
+
+        imported_count = import_question_banks_from_word(self.level, subject, [uploaded])
+
+        self.assertEqual(imported_count, 1)
+        question = self.level.question_bank.get()
+        self.assertEqual(question.question_type, "true_false")
+        self.assertEqual(question.choices.get(is_correct=True).text, "صح")
         self.assertEqual(self.level.question_bank.count(), 0)
 
     def test_exam_generator_saves_allocations_and_points_per_question(self):

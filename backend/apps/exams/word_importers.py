@@ -53,8 +53,8 @@ def parse_question_block(block, bank_order):
     option_fields = [f"option_{number}" for number in range(1, 5) if f"option_{number}" in block]
     if question_type not in {"multiple_choice", "true_false"}:
         raise ValidationError(f"Question {bank_order} has an invalid question type.")
-    if question_type == "true_false" and {block[field].lower() for field in option_fields} != {"true", "false"}:
-        raise ValidationError(f"Question {bank_order} true_false choices must be True and False.")
+    if question_type == "true_false" and len(option_fields) != 2:
+        raise ValidationError(f"Question {bank_order} true_false questions must have exactly two choices.")
     choices = [(block[field], block[field] == block["correct_answer"]) for field in option_fields]
     if sum(correct for _, correct in choices) != 1:
         raise ValidationError(f"Question {bank_order} must have exactly one correct answer.")
