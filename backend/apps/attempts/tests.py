@@ -53,16 +53,18 @@ class AttemptApiTests(TestCase):
         self.assertEqual(first.data["id"], second.data["id"])
         self.assertEqual([q["id"] for q in first.data["questions"]], [q["id"] for q in second.data["questions"]])
 
-    def test_submitted_exam_can_be_restarted_with_new_order(self):
-        first = self.start()
+    def test_submitted_exam_can_be_restarted_with_fresh_questions(self):
+        with patch("apps.attempts.views.random.sample", side_effect=lambda population, count: population[:count]):
+            first = self.start()
         self.client.post(
             f"/api/exam-attempts/{first.data['id']}/submit/",
             {"student_code": self.student.student_code},
             format="json",
         )
-        second = self.start()
+        with patch("apps.attempts.views.random.sample", side_effect=lambda population, count: population[-count:]):
+            second = self.start()
         self.assertNotEqual(first.data["id"], second.data["id"])
-        self.assertEqual(
+        self.assertNotEqual(
             {question["question_text_snapshot"] for question in first.data["questions"]},
             {question["question_text_snapshot"] for question in second.data["questions"]},
         )

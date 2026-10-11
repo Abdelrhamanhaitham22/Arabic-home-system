@@ -39,6 +39,22 @@ def attempt_response(attempt):
     return Response(ExamAttemptSerializer(attempt).data)
 
 
+def fresh_retake_questions(exam, selected_exam_questions):
+    questions = list(exam.level.question_bank.filter(is_active=True).prefetch_related("choices"))
+    if selected_exam_questions:
+        question_types = [question.question.question_type for question in selected_exam_questions]
+        required_types = {question_type: question_types.count(question_type) for question_type in set(question_types)}
+    else:
+        required_types = {"true_false": exam.question_count // 2, "multiple_choice": exam.question_count - exam.question_count // 2}
+    selected = []
+    for question_type, count in required_types.items():
+        available = [question for question in questions if question.question_type == question_type]
+        if len(available) < count:
+            raise ValueError("The question bank does not contain enough questions for a new attempt.")
+        selected.extend(random.sample(available, count))
+    return selected
+
+
 def answer_values(question, answer_payload):
     choice_id = answer_payload.get("selected_choice_id")
     answer_value = str(answer_payload.get("selected_answer_value", ""))
@@ -76,20 +92,20 @@ class StartExamView(APIView):
         if existing:
             return attempt_response(existing)
 
-        selected_exam_questions = list(exam.selected_questions.select_related("question").order_by("display_order"))
-        if selected_exam_questions:
-            if len(selected_exam_questions) != exam.question_count:
-                return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
-            selected = [selected_question.question for selected_question in selected_exam_questions]
-            points = exam.max_score / exam.question_count
-        else:
-            questions = list(exam.level.question_bank.filter(is_active=True).prefetch_related("choices"))
-            true_false = [question for question in questions if question.question_type == "true_false"]
-            multiple_choice = [question for question in questions if question.question_type == "multiple_choice"]
-            if len(true_false) < 25 or len(multiple_choice) < 25:
-                return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
-            selected = random.sample(true_false, 25) + random.sample(multiple_choice, 25)
-            points = exam.max_score / len(selected)
+        try:
+            existing_attempts = ExamAttempt.objects.filter(student=student, exam=exam).exists()
+            selected_exam_questions = list(exam.selected_questions.select_related("question").order_by("display_order"))
+            if existing_attempts:
+                selected = fresh_retake_questions(exam, selected_exam_questions)
+            elif selected_exam_questions:
+                if len(selected_exam_questions) != exam.question_count:
+                    return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
+                selected = [selected_question.question for selected_question in selected_exam_questions]
+            else:
+                selected = fresh_retake_questions(exam, [])
+        except ValueError as error:
+            return Response({"error": "question_bank_incomplete", "message": str(error)}, status=409)
+        points = exam.max_score / len(selected)
         random.shuffle(selected)
         try:
             with transaction.atomic():
