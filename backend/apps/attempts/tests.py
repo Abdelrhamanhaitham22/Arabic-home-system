@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import patch
 
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -52,15 +53,34 @@ class AttemptApiTests(TestCase):
         self.assertEqual(first.data["id"], second.data["id"])
         self.assertEqual([q["id"] for q in first.data["questions"]], [q["id"] for q in second.data["questions"]])
 
-    def test_generated_exam_uses_persisted_questions_for_every_attempt(self):
+    def test_submitted_exam_can_be_restarted_with_new_order(self):
+        first = self.start()
+        self.client.post(
+            f"/api/exam-attempts/{first.data['id']}/submit/",
+            {"student_code": self.student.student_code},
+            format="json",
+        )
+        second = self.start()
+        self.assertNotEqual(first.data["id"], second.data["id"])
+        self.assertEqual(
+            {question["question_text_snapshot"] for question in first.data["questions"]},
+            {question["question_text_snapshot"] for question in second.data["questions"]},
+        )
+
+    def test_generated_exam_uses_persisted_questions_with_random_order(self):
         selected = list(self.level.question_bank.order_by("id")[:50])
         for order, question in enumerate(selected, start=1):
             ExamQuestion.objects.create(exam=self.exam, question=question, display_order=order)
 
-        first = self.start()
-        second = self.start(self.other_student)
+        with patch("apps.attempts.views.random.shuffle", side_effect=lambda values: values.reverse()):
+            first = self.start()
+        with patch("apps.attempts.views.random.shuffle", side_effect=lambda values: values.__setitem__(slice(None), values[1:] + values[:1])):
+            second = self.start(self.other_student)
 
-        self.assertEqual(
+        first_questions = {question["question_text_snapshot"] for question in first.data["questions"]}
+        second_questions = {question["question_text_snapshot"] for question in second.data["questions"]}
+        self.assertEqual(first_questions, second_questions)
+        self.assertNotEqual(
             [question["question_text_snapshot"] for question in first.data["questions"]],
             [question["question_text_snapshot"] for question in second.data["questions"]],
         )

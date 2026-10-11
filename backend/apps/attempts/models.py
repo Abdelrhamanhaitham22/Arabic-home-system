@@ -17,9 +17,6 @@ class ExamAttempt(models.Model):
     percentage = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=("student", "exam"), name="unique_attempt_per_student_exam"),
-        ]
         ordering = ("-started_at",)
 
     def clean(self):

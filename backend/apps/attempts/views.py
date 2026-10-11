@@ -72,7 +72,7 @@ class StartExamView(APIView):
         if exam.level.question_bank_errors():
             return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
 
-        existing = ExamAttempt.objects.filter(student=student, exam=exam).first()
+        existing = ExamAttempt.objects.filter(student=student, exam=exam, status="in_progress").first()
         if existing:
             return attempt_response(existing)
 
@@ -90,6 +90,7 @@ class StartExamView(APIView):
                 return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
             selected = random.sample(true_false, 25) + random.sample(multiple_choice, 25)
             points = exam.max_score / len(selected)
+        random.shuffle(selected)
         try:
             with transaction.atomic():
                 attempt = ExamAttempt.objects.create(student=student, exam=exam, max_score=exam.max_score)
@@ -195,8 +196,7 @@ class SubmitAttemptView(APIView):
         total_score = assessment.total_score
         total_max = assessment_config.total_max
         Result.objects.update_or_create(
-            student=attempt.student,
-            exam=attempt.exam,
-            defaults={"attempt": attempt, "score": total_score, "max_score": total_max, "percentage": round((total_score / total_max) * 100, 2) if total_max else 0, "submission_status": "submitted", "published": True},
+            attempt=attempt,
+            defaults={"student": attempt.student, "exam": attempt.exam, "score": total_score, "max_score": total_max, "percentage": round((total_score / total_max) * 100, 2) if total_max else 0, "submission_status": "submitted", "published": True},
         )
         return attempt_response(attempt)

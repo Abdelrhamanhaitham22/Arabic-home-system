@@ -25,14 +25,6 @@ class Result(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=("student", "exam"),
-                name="unique_result_per_student_exam",
-            )
-        ]
-
     def clean(self):
         if self.exam_id and self.score > (self.max_score or self.exam.max_score):
             raise ValidationError({"score": "Score cannot exceed the exam maximum."})
