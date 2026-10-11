@@ -6,16 +6,20 @@ from .models import Result
 class ResultItemSerializer(serializers.ModelSerializer):
     exam_name = serializers.CharField(source="exam.name")
     level = serializers.CharField(source="exam.level.name", allow_null=True)
-    max_score = serializers.DecimalField(source="exam.max_score", max_digits=8, decimal_places=2)
+    score = serializers.SerializerMethodField()
+    max_score = serializers.SerializerMethodField()
     exam_date = serializers.DateField(source="exam.exam_date")
     percentage = serializers.SerializerMethodField()
     sections = serializers.SerializerMethodField()
     teacher_feedback = serializers.CharField(source="teacher_notes", read_only=True)
 
     def get_sections(self, result):
-        assessment = result.student.teacher_assessments.filter(level_id=result.exam.level_id).first()
+        assessments = result.student.teacher_assessments.select_related("level__teacher_assessment_config")
+        assessment = assessments.filter(level_id=result.exam.level_id).first() or assessments.filter(level_id=result.student.level_id).first() or assessments.first()
         if assessment:
-            config = assessment.level.teacher_assessment_config
+            config = getattr(assessment.level, "teacher_assessment_config", None)
+            if config is None:
+                return [{"name": "التحريري", "score": result.score, "max_score": result.max_score or result.exam.max_score, "comment": result.teacher_notes}]
             return [
                 {"name": "التحريري", "score": assessment.written_score, "max_score": config.written_max, "comment": ""},
                 {"name": "النشاط والإملاء", "score": assessment.activity_dictation_score, "max_score": config.activity_dictation_max, "comment": ""},
@@ -24,8 +28,16 @@ class ResultItemSerializer(serializers.ModelSerializer):
         return [{"name": "التحريري", "score": result.score, "max_score": result.max_score or result.exam.max_score, "comment": result.teacher_notes}]
 
     def get_percentage(self, result):
-        maximum = result.max_score or result.exam.max_score
-        return round((result.score / maximum) * 100, 2) if maximum else 0
+        sections = self.get_sections(result)
+        maximum = sum(section["max_score"] for section in sections)
+        score = sum(section["score"] for section in sections)
+        return round((score / maximum) * 100, 2) if maximum else 0
+
+    def get_score(self, result):
+        return sum(section["score"] for section in self.get_sections(result))
+
+    def get_max_score(self, result):
+        return sum(section["max_score"] for section in self.get_sections(result))
 
     class Meta:
         model = Result
