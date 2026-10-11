@@ -1,129 +1,2131 @@
-import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
-import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom'
-import './App.css'
-import logo from './assets/bayt-al-arabia-logo.jpeg'
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import {
+  BrowserRouter,
+  Link,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
+import "./App.css";
+import logo from "./assets/bayt-al-arabia-logo.jpeg";
 
-type Language = 'ar' | 'ru'
-type ApiObject = Record<string, unknown>
-type LevelOption = { id: number; name: string }
-type Result = { exam_name: string; level: string | null; score: number; max_score: number; percentage: number; exam_date: string; sections: { name: string; score: number; max_score: number; comment: string }[]; teacher_feedback: string }
-type ResultResponse = { student_name: string; student_code: string; results: Result[]; message?: string }
-type TeacherStudent = { student_code: string; full_name: string; level: string | null; level_id: number | null }
-type TeacherAssessmentConfig = { level_id: number; level: string; written_max: number; activity_dictation_max: number; oral_max: number }
-type TeacherAssessment = { student_code: string; level_id: number; written_score: number; activity_dictation_score: number; oral_score: number; total_score: number; teacher_notes: string }
-type TeacherResponse = { username: string; levels: { id: number; name: string }[]; students: TeacherStudent[]; assessment_configs: TeacherAssessmentConfig[]; assessments: TeacherAssessment[] }
-type HomepageVideo = { id: number; title_ar: string; title_ru: string; description_ar: string; description_ru: string; video_url: string }
-type AttemptQuestion = { id: number; display_order: number; points_snapshot: number; question_text_snapshot: string; question_type_snapshot: string; choices: { id: number; text: string }[]; answer: { selected_choice_id: number | null; selected_answer_value: string } | null; correct_answer: { choice_id: number; value: string } | null }
-type Attempt = { id: number; exam: number; exam_name: string; status: 'in_progress' | 'submitted'; started_at: string; submitted_at: string | null; deadline: string | null; score: number; max_score: number; percentage: number; questions: AttemptQuestion[] }
-type AvailableExam = { id: number; name: string; level: string | null; max_score: number; exam_date: string; time_limit_minutes: number | null }
-type GeneratorSource = { id: number; subject: string; folder: string; filename: string; available_questions: number; multiple_choice_questions: number; true_false_questions: number; count: number }
-type GeneratorLevel = { id: number; name: string; sources: GeneratorSource[] }
-type GeneratedExam = { id: number; name: string; status: string; question_count: number; max_score: string; points_per_question: string }
-type PreviewQuestion = { prompt: string; subject: string | null; source: string | null; question_type: string; points: string; choices: string[] }
-type StaffAccount = { id: number; username: string; role: string; is_active: boolean; is_superuser: boolean }
-type AuditEntry = { id: number; actor: string; action: string; target_type: string; target_id: string; created_at: string }
-type ManagedExam = { id: number; name: string; level: string | null; status: string; question_count: number; max_score: string; has_attempts: boolean; created_at: string }
+type Language = "ar" | "ru";
+type ApiObject = Record<string, unknown>;
+type LevelOption = { id: number; name: string };
+type Result = {
+  exam_name: string;
+  level: string | null;
+  score: number;
+  max_score: number;
+  percentage: number;
+  exam_date: string;
+  sections: {
+    name: string;
+    score: number;
+    max_score: number;
+    comment: string;
+  }[];
+  teacher_feedback: string;
+};
+type ResultResponse = {
+  student_name: string;
+  student_code: string;
+  results: Result[];
+  message?: string;
+};
+type TeacherStudent = {
+  student_code: string;
+  full_name: string;
+  level: string | null;
+  level_id: number | null;
+};
+type TeacherAssessmentConfig = {
+  level_id: number;
+  level: string;
+  written_max: number;
+  activity_dictation_max: number;
+  oral_max: number;
+};
+type TeacherAssessment = {
+  student_code: string;
+  level_id: number;
+  written_score: number;
+  activity_dictation_score: number;
+  oral_score: number;
+  total_score: number;
+  teacher_notes: string;
+};
+type TeacherResponse = {
+  username: string;
+  levels: { id: number; name: string }[];
+  students: TeacherStudent[];
+  assessment_configs: TeacherAssessmentConfig[];
+  assessments: TeacherAssessment[];
+};
+type HomepageVideo = {
+  id: number;
+  title_ar: string;
+  title_ru: string;
+  description_ar: string;
+  description_ru: string;
+  video_url: string;
+};
+type AttemptQuestion = {
+  id: number;
+  display_order: number;
+  points_snapshot: number;
+  question_text_snapshot: string;
+  question_type_snapshot: string;
+  choices: { id: number; text: string }[];
+  answer: {
+    selected_choice_id: number | null;
+    selected_answer_value: string;
+  } | null;
+  correct_answer: { choice_id: number; value: string } | null;
+};
+type Attempt = {
+  id: number;
+  exam: number;
+  exam_name: string;
+  status: "in_progress" | "submitted";
+  started_at: string;
+  submitted_at: string | null;
+  deadline: string | null;
+  score: number;
+  max_score: number;
+  percentage: number;
+  questions: AttemptQuestion[];
+};
+type AvailableExam = {
+  id: number;
+  name: string;
+  level: string | null;
+  max_score: number;
+  exam_date: string;
+  time_limit_minutes: number | null;
+};
+type GeneratorSource = {
+  id: number;
+  subject: string;
+  folder: string;
+  filename: string;
+  available_questions: number;
+  multiple_choice_questions: number;
+  true_false_questions: number;
+  count: number;
+};
+type GeneratorLevel = { id: number; name: string; sources: GeneratorSource[] };
+type GeneratedExam = {
+  id: number;
+  name: string;
+  status: string;
+  question_count: number;
+  max_score: string;
+  points_per_question: string;
+};
+type PreviewQuestion = {
+  prompt: string;
+  subject: string | null;
+  source: string | null;
+  question_type: string;
+  points: string;
+  choices: string[];
+};
+type StaffAccount = {
+  id: number;
+  username: string;
+  role: string;
+  is_active: boolean;
+  is_superuser: boolean;
+};
+type AuditEntry = {
+  id: number;
+  actor: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  created_at: string;
+};
+type ManagedExam = {
+  id: number;
+  name: string;
+  level: string | null;
+  status: string;
+  question_count: number;
+  max_score: string;
+  has_attempts: boolean;
+  created_at: string;
+};
 const apiBaseUrl = import.meta.env.DEV
-  ? (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
-  : 'https://arabic-home-system-backend-6tpv-production.up.railway.app/api'
+  ? (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "")
+  : "https://arabic-home-system-backend-6tpv-production.up.railway.app/api";
 
 async function readResponse(response: Response): Promise<ApiObject> {
-  const text = await response.text()
-  if (!text) throw new Error('The server did not return a response.')
-  try { return JSON.parse(text) as ApiObject } catch { throw new Error('The server returned an invalid response.') }
+  const text = await response.text();
+  if (!text) throw new Error("The server did not return a response.");
+  try {
+    return JSON.parse(text) as ApiObject;
+  } catch {
+    throw new Error("The server returned an invalid response.");
+  }
 }
 
 const copy = {
-  ar: { home: 'الرئيسية', register: 'التسجيل', results: 'النتائج', teacher: 'المعلم', exams: 'الاختبارات', arabic: 'العربية', russian: 'Русский', eyebrow: 'بوابتك إلى التعلّم', hero: 'نتيجتك.\nخطوتك التالية.', heroBody: 'سجّل بياناتك مرة واحدة، واحتفظ برمزك الدائم للوصول إلى نتائج اختباراتك في أي وقت.', start: 'ابدأ التسجيل', check: 'تحقق من نتيجتك', trust: 'خدمة بسيطة، واضحة، ومصممة لتكون معك في كل خطوة.', videosTitle: 'شاهد وتعلّم', videosBody: 'مقاطع مختارة تساعدك على الاقتراب من اللغة العربية كل يوم.', videosEmpty: 'ستظهر المقاطع التعليمية هنا قريباً.', videoUnavailable: 'تعذر تحميل المقاطع حالياً.', registerTitle: 'أنشئ ملفك الطلابي', registerBody: 'أدخل بياناتك كما تظهر في وثائقك. سنرسل لك رمزاً دائماً بعد التسجيل.', fullName: 'الاسم الكامل', phone: 'رقم الهاتف', address: 'العنوان', passport: 'رقم جواز السفر', language: 'لغة العرض المفضلة', choose: 'اختر اللغة', submit: 'إتمام التسجيل', registering: 'جارٍ التسجيل…', yourCode: 'رمزك الطلابي الدائم', saveCode: 'احتفظ بهذا الرمز. ستحتاج إليه كلما أردت التحقق من نتائج اختباراتك.', copy: 'نسخ الرمز', registerAnother: 'تسجيل طالب آخر', resultsTitle: 'اعرف نتيجتك', code: 'الرمز الطلابي', codeHint: 'مثال: 12345678', search: 'عرض النتيجة', searching: 'جارٍ البحث…', student: 'الطالب', published: 'نتائج منشورة', noResults: 'لم تُنشر نتيجة بعد', noResultsBody: 'ستظهر نتائجك هنا فور اعتمادها.', exam: 'الاختبار', level: 'المستوى', chooseLevel: 'اختر المستوى', resultSections: 'درجات الأقسام', teacherFeedback: 'ملاحظات المعلم', notFound: 'لم نعثر على هذا الرمز', footer: 'نتعلم اليوم لنفتح أبواب الغد.', examTitle: 'اختباراتك الإلكترونية', startExam: 'ابدأ الاختبار', resumeExam: 'استكمال الاختبار', submitExam: 'تسليم الاختبار', question: 'السؤال', answered: 'تمت الإجابة', unanswered: 'لم تتم الإجابة', correct: 'صحيح', wrong: 'خطأ', timeLeft: 'الوقت المتبقي', score: 'النتيجة', back: 'السابق', next: 'التالي', noExams: 'لا توجد اختبارات متاحة حالياً.' },
-  ru: { home: 'Главная', register: 'Регистрация', results: 'Результаты', teacher: 'Учитель', exams: 'Экзамены', arabic: 'العربية', russian: 'Русский', eyebrow: 'Ваш путь к обучению', hero: 'Ваш результат.\nВаш следующий шаг.', heroBody: 'Зарегистрируйтесь один раз и сохраните постоянный код для доступа к результатам экзаменов.', start: 'Начать регистрацию', check: 'Проверить результат', trust: 'Простой и понятный сервис, который сопровождает вас на каждом шаге.', videosTitle: 'Смотрите и учитесь', videosBody: 'Подборка видео, которая помогает каждый день быть ближе к арабскому языку.', videosEmpty: 'Учебные видео скоро появятся здесь.', videoUnavailable: 'Сейчас не удалось загрузить видео.', registerTitle: 'Создайте профиль студента', registerBody: 'Введите данные так, как они указаны в документах. После регистрации вы получите постоянный код.', fullName: 'Полное имя', phone: 'Номер телефона', address: 'Адрес', passport: 'Номер паспорта', language: 'Язык интерфейса', choose: 'Выберите язык', submit: 'Завершить регистрацию', registering: 'Регистрация…', yourCode: 'Ваш постоянный код', saveCode: 'Сохраните этот код для проверки результатов.', copy: 'Скопировать код', registerAnother: 'Зарегистрировать ещё', resultsTitle: 'Проверьте результат', code: 'Код студента', codeHint: 'Например: 12345678', search: 'Показать результат', searching: 'Поиск…', student: 'Студент', published: 'Опубликованные результаты', noResults: 'Результатов пока нет', noResultsBody: 'Результат появится здесь после публикации.', exam: 'Экзамен', level: 'Уровень', chooseLevel: 'Выберите уровень', resultSections: 'Баллы по разделам', teacherFeedback: 'Комментарий преподавателя', notFound: 'Код не найден', footer: 'Учимся сегодня, открываем возможности завтра.', examTitle: 'Ваши онлайн-экзамены', startExam: 'Начать экзамен', resumeExam: 'Продолжить экзамен', submitExam: 'Сдать экзамен', question: 'Вопрос', answered: 'Отвечено', unanswered: 'Без ответа', correct: 'Верно', wrong: 'Неверно', timeLeft: 'Осталось времени', score: 'Результат', back: 'Назад', next: 'Далее', noExams: 'Нет доступных экзаменов.' },
-} as const
-type Copy = (typeof copy)[Language]
+  ar: {
+    home: "الرئيسية",
+    register: "التسجيل",
+    results: "النتائج",
+    teacher: "المعلم",
+    exams: "الاختبارات",
+    arabic: "العربية",
+    russian: "Русский",
+    eyebrow: "بوابتك إلى التعلّم",
+    hero: "نتيجتك.\nخطوتك التالية.",
+    heroBody:
+      "سجّل بياناتك مرة واحدة، واحتفظ برمزك الدائم للوصول إلى نتائج اختباراتك في أي وقت.",
+    start: "ابدأ التسجيل",
+    check: "تحقق من نتيجتك",
+    trust: "خدمة بسيطة، واضحة، ومصممة لتكون معك في كل خطوة.",
+    videosTitle: "شاهد وتعلّم",
+    videosBody: "مقاطع مختارة تساعدك على الاقتراب من اللغة العربية كل يوم.",
+    videosEmpty: "ستظهر المقاطع التعليمية هنا قريباً.",
+    videoUnavailable: "تعذر تحميل المقاطع حالياً.",
+    registerTitle: "أنشئ ملفك الطلابي",
+    registerBody:
+      "أدخل بياناتك كما تظهر في وثائقك. سنرسل لك رمزاً دائماً بعد التسجيل.",
+    fullName: "الاسم الكامل",
+    phone: "رقم الهاتف",
+    address: "العنوان",
+    passport: "رقم جواز السفر",
+    language: "لغة العرض المفضلة",
+    choose: "اختر اللغة",
+    submit: "إتمام التسجيل",
+    registering: "جارٍ التسجيل…",
+    yourCode: "رمزك الطلابي الدائم",
+    saveCode:
+      "احتفظ بهذا الرمز. ستحتاج إليه كلما أردت التحقق من نتائج اختباراتك.",
+    copy: "نسخ الرمز",
+    registerAnother: "تسجيل طالب آخر",
+    resultsTitle: "اعرف نتيجتك",
+    code: "الرمز الطلابي",
+    codeHint: "مثال: 12345678",
+    search: "عرض النتيجة",
+    searching: "جارٍ البحث…",
+    student: "الطالب",
+    published: "نتائج منشورة",
+    noResults: "لم تُنشر نتيجة بعد",
+    noResultsBody: "ستظهر نتائجك هنا فور اعتمادها.",
+    exam: "الاختبار",
+    level: "المستوى",
+    chooseLevel: "اختر المستوى",
+    resultSections: "درجات الأقسام",
+    teacherFeedback: "ملاحظات المعلم",
+    notFound: "لم نعثر على هذا الرمز",
+    footer: "نتعلم اليوم لنفتح أبواب الغد.",
+    examTitle: "اختباراتك الإلكترونية",
+    startExam: "ابدأ الاختبار",
+    resumeExam: "استكمال الاختبار",
+    submitExam: "تسليم الاختبار",
+    question: "السؤال",
+    answered: "تمت الإجابة",
+    unanswered: "لم تتم الإجابة",
+    correct: "صحيح",
+    wrong: "خطأ",
+    timeLeft: "الوقت المتبقي",
+    score: "النتيجة",
+    back: "السابق",
+    next: "التالي",
+    noExams: "لا توجد اختبارات متاحة حالياً.",
+  },
+  ru: {
+    home: "Главная",
+    register: "Регистрация",
+    results: "Результаты",
+    teacher: "Учитель",
+    exams: "Экзамены",
+    arabic: "العربية",
+    russian: "Русский",
+    eyebrow: "Ваш путь к обучению",
+    hero: "Ваш результат.\nВаш следующий шаг.",
+    heroBody:
+      "Зарегистрируйтесь один раз и сохраните постоянный код для доступа к результатам экзаменов.",
+    start: "Начать регистрацию",
+    check: "Проверить результат",
+    trust:
+      "Простой и понятный сервис, который сопровождает вас на каждом шаге.",
+    videosTitle: "Смотрите и учитесь",
+    videosBody:
+      "Подборка видео, которая помогает каждый день быть ближе к арабскому языку.",
+    videosEmpty: "Учебные видео скоро появятся здесь.",
+    videoUnavailable: "Сейчас не удалось загрузить видео.",
+    registerTitle: "Создайте профиль студента",
+    registerBody:
+      "Введите данные так, как они указаны в документах. После регистрации вы получите постоянный код.",
+    fullName: "Полное имя",
+    phone: "Номер телефона",
+    address: "Адрес",
+    passport: "Номер паспорта",
+    language: "Язык интерфейса",
+    choose: "Выберите язык",
+    submit: "Завершить регистрацию",
+    registering: "Регистрация…",
+    yourCode: "Ваш постоянный код",
+    saveCode: "Сохраните этот код для проверки результатов.",
+    copy: "Скопировать код",
+    registerAnother: "Зарегистрировать ещё",
+    resultsTitle: "Проверьте результат",
+    code: "Код студента",
+    codeHint: "Например: 12345678",
+    search: "Показать результат",
+    searching: "Поиск…",
+    student: "Студент",
+    published: "Опубликованные результаты",
+    noResults: "Результатов пока нет",
+    noResultsBody: "Результат появится здесь после публикации.",
+    exam: "Экзамен",
+    level: "Уровень",
+    chooseLevel: "Выберите уровень",
+    resultSections: "Баллы по разделам",
+    teacherFeedback: "Комментарий преподавателя",
+    notFound: "Код не найден",
+    footer: "Учимся сегодня, открываем возможности завтра.",
+    examTitle: "Ваши онлайн-экзамены",
+    startExam: "Начать экзамен",
+    resumeExam: "Продолжить экзамен",
+    submitExam: "Сдать экзамен",
+    question: "Вопрос",
+    answered: "Отвечено",
+    unanswered: "Без ответа",
+    correct: "Верно",
+    wrong: "Неверно",
+    timeLeft: "Осталось времени",
+    score: "Результат",
+    back: "Назад",
+    next: "Далее",
+    noExams: "Нет доступных экзаменов.",
+  },
+} as const;
+type Copy = (typeof copy)[Language];
 
- function App() {
-  const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('language') as Language) || 'ar')
-  const t = copy[language]
-  useEffect(() => { localStorage.setItem('language', language); document.documentElement.lang = language; document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr' }, [language])
-     return <BrowserRouter><div className="app-shell"><Header language={language} setLanguage={setLanguage} t={t} /><main><Routes><Route path="/" element={<Home language={language} t={t} />} /><Route path="/register" element={<Register t={t} />} /><Route path="/results" element={<Results t={t} />} /><Route path="/exams" element={<Exams t={t} />} /><Route path="/teacher" element={<TeacherAssessments />} /><Route path="/admin-generator" element={<AdminGenerator />} /><Route path="/staff-admin" element={<StaffAdmin />} /><Route path="/exam-management" element={<ExamManagement />} /></Routes></main><Footer t={t} /></div></BrowserRouter>
+function App() {
+  const [language, setLanguage] = useState<Language>(
+    () => (localStorage.getItem("language") as Language) || "ar",
+  );
+  const t = copy[language];
+  useEffect(() => {
+    localStorage.setItem("language", language);
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+  }, [language]);
+  return (
+    <BrowserRouter>
+      <div className="app-shell">
+        <Header language={language} setLanguage={setLanguage} t={t} />
+        <main>
+          <Routes>
+            <Route path="/" element={<Home language={language} t={t} />} />
+            <Route path="/register" element={<Register t={t} />} />
+            <Route path="/results" element={<Results t={t} />} />
+            <Route path="/exams" element={<Exams t={t} />} />
+            <Route path="/teacher" element={<TeacherAssessments />} />
+            <Route path="/admin-generator" element={<AdminGenerator />} />
+            <Route path="/staff-admin" element={<StaffAdmin />} />
+            <Route path="/exam-management" element={<ExamManagement />} />
+          </Routes>
+        </main>
+        <Footer t={t} />
+      </div>
+    </BrowserRouter>
+  );
 }
 
-function Header({ language, setLanguage, t }: { language: Language; setLanguage: (language: Language) => void; t: Copy }) { const location = useLocation(); return <header className="site-header"><Link className="brand" to="/"><img src={logo} alt="بيت العربية" /><span><strong>بيت العربية</strong><small>Arabic Language Center</small></span></Link><nav aria-label="Main navigation"><Link className={location.pathname === '/' ? 'active' : ''} to="/">{t.home}</Link><Link className={location.pathname === '/register' ? 'active' : ''} to="/register">{t.register}</Link><Link className={location.pathname === '/exams' ? 'active' : ''} to="/exams">{t.exams}</Link><Link className={location.pathname === '/teacher' ? 'active' : ''} to="/teacher">{t.teacher}</Link><Link className={location.pathname === '/results' ? 'active' : ''} to="/results">{t.results}</Link></nav><div className="language-switcher"><button className={language === 'ar' ? 'selected' : ''} onClick={() => setLanguage('ar')}>{t.arabic}</button><span>/</span><button className={language === 'ru' ? 'selected' : ''} onClick={() => setLanguage('ru')}>{t.russian}</button></div></header> }
-function Home({ language, t }: { language: Language; t: Copy }) { const [videos, setVideos] = useState<HomepageVideo[]>([]); const [videoError, setVideoError] = useState(false); useEffect(() => { fetch(`${apiBaseUrl}/core/videos/`).then(readResponse).then(body => setVideos(body as unknown as HomepageVideo[])).catch(() => setVideoError(true)) }, []); const localized = (video: HomepageVideo, field: 'title' | 'description') => languageValue(video, field, language); return <div className="page home-page"><section className="hero-section"><div className="hero-brand-panel"><img src={logo} alt="بيت العربية - مركز اللغة العربية" /><p>بيت العربية</p><span>Arabic Language Center</span></div><div className="hero-copy"><p className="eyebrow"><span className="eyebrow-dot" />{t.eyebrow}</p><h1>{t.hero.split('\n').map((line, index) => <span key={line} className={index ? 'accent-line' : ''}>{line}<br /></span>)}</h1><p className="hero-body">{t.heroBody}</p><div className="hero-actions"><Link className="button primary" to="/register">{t.start}<span>↗</span></Link><Link className="button text-button" to="/results">{t.check}<span>→</span></Link></div></div><div className="hero-visual" aria-hidden="true"><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="orbit orbit-three" /><div className="visual-core"><img src={logo} alt="" /></div></div></section><section className="trust-line"><span className="line" /><p>{t.trust}</p><span className="line" /></section><section className="videos-section"><div className="videos-heading"><div><p className="eyebrow">{t.videosTitle}</p><h2>{t.videosTitle}</h2></div><p>{t.videosBody}</p></div>{videoError ? <div className="video-notice">{t.videoUnavailable}</div> : videos.length ? <div className="video-grid">{videos.map(video => <article className="video-card" key={video.id}><video controls preload="metadata" src={video.video_url} /><div className="video-card-copy"><h3>{localized(video, 'title')}</h3>{localized(video, 'description') && <p>{localized(video, 'description')}</p>}</div></article>)}</div> : <div className="video-notice">{t.videosEmpty}</div>}</section></div> }
+function Header({
+  language,
+  setLanguage,
+  t,
+}: {
+  language: Language;
+  setLanguage: (language: Language) => void;
+  t: Copy;
+}) {
+  const location = useLocation();
+  return (
+    <header className="site-header">
+      <Link className="brand" to="/">
+        <img src={logo} alt="بيت العربية" />
+        <span>
+          <strong>بيت العربية</strong>
+          <small>Arabic Language Center</small>
+        </span>
+      </Link>
+      <nav aria-label="Main navigation">
+        <Link className={location.pathname === "/" ? "active" : ""} to="/">
+          {t.home}
+        </Link>
+        <Link
+          className={location.pathname === "/register" ? "active" : ""}
+          to="/register"
+        >
+          {t.register}
+        </Link>
+        <Link
+          className={location.pathname === "/exams" ? "active" : ""}
+          to="/exams"
+        >
+          {t.exams}
+        </Link>
+        <Link
+          className={location.pathname === "/teacher" ? "active" : ""}
+          to="/teacher"
+        >
+          {t.teacher}
+        </Link>
+        <Link
+          className={location.pathname === "/results" ? "active" : ""}
+          to="/results"
+        >
+          {t.results}
+        </Link>
+      </nav>
+      <div className="language-switcher">
+        <button
+          className={language === "ar" ? "selected" : ""}
+          onClick={() => setLanguage("ar")}
+        >
+          {t.arabic}
+        </button>
+        <span>/</span>
+        <button
+          className={language === "ru" ? "selected" : ""}
+          onClick={() => setLanguage("ru")}
+        >
+          {t.russian}
+        </button>
+      </div>
+    </header>
+  );
+}
+function Home({ language, t }: { language: Language; t: Copy }) {
+  const [videos, setVideos] = useState<HomepageVideo[]>([]);
+  const [videoError, setVideoError] = useState(false);
+  useEffect(() => {
+    fetch(`${apiBaseUrl}/core/videos/`)
+      .then(readResponse)
+      .then((body) => setVideos(body as unknown as HomepageVideo[]))
+      .catch(() => setVideoError(true));
+  }, []);
+  const localized = (video: HomepageVideo, field: "title" | "description") =>
+    languageValue(video, field, language);
+  return (
+    <div className="page home-page">
+      <section className="hero-section">
+        <div className="hero-brand-panel">
+          <img src={logo} alt="بيت العربية - مركز اللغة العربية" />
+          <p>بيت العربية</p>
+          <span>Arabic Language Center</span>
+        </div>
+        <div className="hero-copy">
+          <p className="eyebrow">
+            <span className="eyebrow-dot" />
+            {t.eyebrow}
+          </p>
+          <h1>
+            {t.hero.split("\n").map((line, index) => (
+              <span key={line} className={index ? "accent-line" : ""}>
+                {line}
+                <br />
+              </span>
+            ))}
+          </h1>
+          <p className="hero-body">{t.heroBody}</p>
+          <div className="hero-actions">
+            <Link className="button primary" to="/register">
+              {t.start}
+              <span>↗</span>
+            </Link>
+            <Link className="button text-button" to="/results">
+              {t.check}
+              <span>→</span>
+            </Link>
+          </div>
+        </div>
+        <div className="hero-visual" aria-hidden="true">
+          <div className="orbit orbit-one" />
+          <div className="orbit orbit-two" />
+          <div className="orbit orbit-three" />
+          <div className="visual-core">
+            <img src={logo} alt="" />
+          </div>
+        </div>
+      </section>
+      <section className="trust-line">
+        <span className="line" />
+        <p>{t.trust}</p>
+        <span className="line" />
+      </section>
+      <section className="videos-section">
+        <div className="videos-heading">
+          <div>
+            <p className="eyebrow">{t.videosTitle}</p>
+            <h2>{t.videosTitle}</h2>
+          </div>
+          <p>{t.videosBody}</p>
+        </div>
+        {videoError ? (
+          <div className="video-notice">{t.videoUnavailable}</div>
+        ) : videos.length ? (
+          <div className="video-grid">
+            {videos.map((video) => (
+              <article className="video-card" key={video.id}>
+                <video controls preload="metadata" src={video.video_url} />
+                <div className="video-card-copy">
+                  <h3>{localized(video, "title")}</h3>
+                  {localized(video, "description") && (
+                    <p>{localized(video, "description")}</p>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="video-notice">{t.videosEmpty}</div>
+        )}
+      </section>
+    </div>
+  );
+}
 
-function languageValue(video: HomepageVideo, field: 'title' | 'description', language: Language) { return video[`${field}_${language}`] }
-function Field({ label, value, onChange, type = 'text', required = false, disabled = false }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean; disabled?: boolean }) { return <label className="field"><span>{label}{required && <b aria-hidden="true">*</b>}</span><input type={type} value={value} onChange={event => onChange(event.target.value)} required={required} disabled={disabled} /></label> }
-function Register({ t }: { t: Copy }) { const [form, setForm] = useState({ full_name: '', phone_number: '', address: '', passport_number: '', level_id: '', preferred_language: 'ar' }); const [levels, setLevels] = useState<LevelOption[]>([]); const [state, setState] = useState({ loading: false, error: '', code: '' }); useEffect(() => { fetch(`${apiBaseUrl}/students/levels/`).then(readResponse).then(body => setLevels(body as unknown as LevelOption[])).catch(error => setState(value => ({ ...value, error: error instanceof Error ? error.message : 'Could not load levels.' }))) }, []); const update = (field: keyof typeof form, value: string) => setForm({ ...form, [field]: value }); async function submit(event: FormEvent) { event.preventDefault(); setState({ loading: true, error: '', code: '' }); try { const response = await fetch(`${apiBaseUrl}/students/register/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) }); const body = await readResponse(response); if (!response.ok) throw new Error(Object.values(body).flat().map(String).join(' ') || 'Request failed'); setState({ loading: false, error: '', code: String(body.student_code) }) } catch (error) { setState({ loading: false, error: error instanceof Error ? error.message : 'Request failed', code: '' }) } } if (state.code) return <div className="page centered-page"><div className="success-symbol">✓</div><p className="eyebrow">{t.register}</p><h1>{t.yourCode}</h1><div className="code-display">{state.code}</div><p className="form-intro">{t.saveCode}</p><button className="button primary" onClick={() => navigator.clipboard?.writeText(state.code)}>{t.copy}</button><button className="button text-button" onClick={() => setState({ loading: false, error: '', code: '' })}>{t.registerAnother}</button></div>; return <div className="page form-page"><div className="form-heading"><p className="eyebrow">{t.register}</p><h1>{t.registerTitle}</h1><p className="form-intro">{t.registerBody}</p></div><form className="student-form" onSubmit={submit}><Field label={t.fullName} value={form.full_name} onChange={value => update('full_name', value)} required /><Field label={t.phone} value={form.phone_number} onChange={value => update('phone_number', value)} type="tel" required /><Field label={t.address} value={form.address} onChange={value => update('address', value)} required /><Field label={t.passport} value={form.passport_number} onChange={value => update('passport_number', value)} required /><label className="field"><span>{t.level}</span><select value={form.level_id} onChange={event => update('level_id', event.target.value)} required><option value="">{t.chooseLevel}</option>{levels.map(level => <option value={level.id} key={level.id}>{level.name}</option>)}</select></label><label className="field"><span>{t.language}</span><select value={form.preferred_language} onChange={event => update('preferred_language', event.target.value)}><option value="ar">{t.arabic}</option><option value="ru">{t.russian}</option></select></label>{state.error && <p className="form-error">{state.error}</p>}<button className="button primary submit-button" disabled={state.loading || !levels.length}>{state.loading ? t.registering : t.submit}<span>↗</span></button></form></div> }
-function Results({ t }: { t: Copy }) { const [code, setCode] = useState(''); const [state, setState] = useState<{ loading: boolean; error: string; response: ResultResponse | null }>({ loading: false, error: '', response: null }); async function search(event: FormEvent) { event.preventDefault(); setState({ loading: true, error: '', response: null }); try { const response = await fetch(`${apiBaseUrl}/results/${code.trim().toUpperCase()}/`); const body = await readResponse(response); if (!response.ok) throw new Error(String(body.message || t.notFound)); setState({ loading: false, error: '', response: body as unknown as ResultResponse }) } catch (error) { setState({ loading: false, error: error instanceof Error ? error.message : t.notFound, response: null }) } } return <div className="page results-page"><div className="results-heading"><p className="eyebrow">{t.results}</p><h1>{t.resultsTitle}</h1><p className="form-intro">{t.check}</p></div><form className="lookup-form" onSubmit={search}><label className="field"><span>{t.code}</span><input value={code} onChange={event => setCode(event.target.value)} placeholder={t.codeHint} required /></label><button className="button primary" disabled={state.loading}>{state.loading ? t.searching : t.search}<span>→</span></button></form>{state.error && <div className="notice error-notice"><p>{state.error}</p></div>}{state.response && <section className="result-panel"><div className="result-head"><div><p className="result-label">{t.student}</p><h2>{state.response.student_name}</h2></div><span className="code-pill">{state.response.student_code}</span></div>{state.response.results.length ? state.response.results.map(result => <article className="result-row" key={`${result.exam_name}-${result.exam_date}`}><div className="result-main"><div><h3>{result.exam_name}</h3><p>{result.level || result.exam_date}</p></div><div className="score"><strong>{result.score}<small> / {result.max_score}</small></strong><span>{result.percentage}%</span></div></div></article>) : <div className="empty-result"><strong>{t.noResults}</strong><p>{state.response.message || t.noResultsBody}</p></div>}</section>}</div> }
+function languageValue(
+  video: HomepageVideo,
+  field: "title" | "description",
+  language: Language,
+) {
+  return video[`${field}_${language}`];
+}
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+  required = false,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  required?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="field">
+      <span>
+        {label}
+        {required && <b aria-hidden="true">*</b>}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        disabled={disabled}
+      />
+    </label>
+  );
+}
+function Register({ t }: { t: Copy }) {
+  const [form, setForm] = useState({
+    full_name: "",
+    phone_number: "",
+    address: "",
+    passport_number: "",
+    level_id: "",
+    preferred_language: "ar",
+  });
+  const [levels, setLevels] = useState<LevelOption[]>([]);
+  const [state, setState] = useState({ loading: false, error: "", code: "" });
+  useEffect(() => {
+    fetch(`${apiBaseUrl}/students/levels/`)
+      .then(readResponse)
+      .then((body) => setLevels(body as unknown as LevelOption[]))
+      .catch((error) =>
+        setState((value) => ({
+          ...value,
+          error:
+            error instanceof Error ? error.message : "Could not load levels.",
+        })),
+      );
+  }, []);
+  const update = (field: keyof typeof form, value: string) =>
+    setForm({ ...form, [field]: value });
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setState({ loading: true, error: "", code: "" });
+    try {
+      const response = await fetch(`${apiBaseUrl}/students/register/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const body = await readResponse(response);
+      if (!response.ok)
+        throw new Error(
+          Object.values(body).flat().map(String).join(" ") || "Request failed",
+        );
+      setState({ loading: false, error: "", code: String(body.student_code) });
+    } catch (error) {
+      setState({
+        loading: false,
+        error: error instanceof Error ? error.message : "Request failed",
+        code: "",
+      });
+    }
+  }
+  if (state.code)
+    return (
+      <div className="page centered-page">
+        <div className="success-symbol">✓</div>
+        <p className="eyebrow">{t.register}</p>
+        <h1>{t.yourCode}</h1>
+        <div className="code-display">{state.code}</div>
+        <p className="form-intro">{t.saveCode}</p>
+        <button
+          className="button primary"
+          onClick={() => navigator.clipboard?.writeText(state.code)}
+        >
+          {t.copy}
+        </button>
+        <button
+          className="button text-button"
+          onClick={() => setState({ loading: false, error: "", code: "" })}
+        >
+          {t.registerAnother}
+        </button>
+      </div>
+    );
+  return (
+    <div className="page form-page">
+      <div className="form-heading">
+        <p className="eyebrow">{t.register}</p>
+        <h1>{t.registerTitle}</h1>
+        <p className="form-intro">{t.registerBody}</p>
+      </div>
+      <form className="student-form" onSubmit={submit}>
+        <Field
+          label={t.fullName}
+          value={form.full_name}
+          onChange={(value) => update("full_name", value)}
+          required
+        />
+        <Field
+          label={t.phone}
+          value={form.phone_number}
+          onChange={(value) => update("phone_number", value)}
+          type="tel"
+          required
+        />
+        <Field
+          label={t.address}
+          value={form.address}
+          onChange={(value) => update("address", value)}
+          required
+        />
+        <Field
+          label={t.passport}
+          value={form.passport_number}
+          onChange={(value) => update("passport_number", value)}
+          required
+        />
+        <label className="field">
+          <span>{t.level}</span>
+          <select
+            value={form.level_id}
+            onChange={(event) => update("level_id", event.target.value)}
+            required
+          >
+            <option value="">{t.chooseLevel}</option>
+            {levels.map((level) => (
+              <option value={level.id} key={level.id}>
+                {level.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>{t.language}</span>
+          <select
+            value={form.preferred_language}
+            onChange={(event) =>
+              update("preferred_language", event.target.value)
+            }
+          >
+            <option value="ar">{t.arabic}</option>
+            <option value="ru">{t.russian}</option>
+          </select>
+        </label>
+        {state.error && <p className="form-error">{state.error}</p>}
+        <button
+          className="button primary submit-button"
+          disabled={state.loading || !levels.length}
+        >
+          {state.loading ? t.registering : t.submit}
+          <span>↗</span>
+        </button>
+      </form>
+    </div>
+  );
+}
+function Results({ t }: { t: Copy }) {
+  const [code, setCode] = useState("");
+  const [state, setState] = useState<{
+    loading: boolean;
+    error: string;
+    response: ResultResponse | null;
+  }>({ loading: false, error: "", response: null });
+  async function search(event: FormEvent) {
+    event.preventDefault();
+    setState({ loading: true, error: "", response: null });
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/results/${code.trim().toUpperCase()}/`,
+      );
+      const body = await readResponse(response);
+      if (!response.ok) throw new Error(String(body.message || t.notFound));
+      setState({
+        loading: false,
+        error: "",
+        response: body as unknown as ResultResponse,
+      });
+    } catch (error) {
+      setState({
+        loading: false,
+        error: error instanceof Error ? error.message : t.notFound,
+        response: null,
+      });
+    }
+  }
+  return (
+    <div className="page results-page">
+      <div className="results-heading">
+        <p className="eyebrow">{t.results}</p>
+        <h1>{t.resultsTitle}</h1>
+        <p className="form-intro">{t.check}</p>
+      </div>
+      <form className="lookup-form" onSubmit={search}>
+        <label className="field">
+          <span>{t.code}</span>
+          <input
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            placeholder={t.codeHint}
+            required
+          />
+        </label>
+        <button className="button primary" disabled={state.loading}>
+          {state.loading ? t.searching : t.search}
+          <span>→</span>
+        </button>
+      </form>
+      {state.error && (
+        <div className="notice error-notice">
+          <p>{state.error}</p>
+        </div>
+      )}
+      {state.response && (
+        <section className="result-panel">
+          <div className="result-head">
+            <div>
+              <p className="result-label">{t.student}</p>
+              <h2>{state.response.student_name}</h2>
+            </div>
+            <span className="code-pill">{state.response.student_code}</span>
+          </div>
+          {state.response.results.length ? (
+            state.response.results.map((result) => (
+              <article
+                className="result-row"
+                key={`${result.exam_name}-${result.exam_date}`}
+              >
+                <div className="result-main">
+                  <div>
+                    <h3>{result.exam_name}</h3>
+                    <p>{result.level || result.exam_date}</p>
+                  </div>
+                  <div className="score">
+                    <strong>
+                      {result.score}
+                      <small> / {result.max_score}</small>
+                    </strong>
+                    <span>{result.percentage}%</span>
+                  </div>
+                </div>
+                <div className="result-sections">
+                  {result.sections.map((section) => (
+                    <div className="result-section" key={section.name}>
+                      <span>{section.name}</span>
+                      <strong>
+                        {section.score} / {section.max_score}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+                <div className="result-total">
+                  <span>المجموع النهائي</span>
+                  <strong>
+                    {result.score} / {result.max_score} ({result.percentage}%)
+                  </strong>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="empty-result">
+              <strong>{t.noResults}</strong>
+              <p>{state.response.message || t.noResultsBody}</p>
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
 function Exams({ t }: { t: Copy }) {
-  const [code, setCode] = useState(''); const [exams, setExams] = useState<AvailableExam[]>([]); const [attempt, setAttempt] = useState<Attempt | null>(null); const [selected, setSelected] = useState(0); const [error, setError] = useState(''); const [loading, setLoading] = useState(false); const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
-  async function loadExams(event: FormEvent) { event.preventDefault(); setLoading(true); setError(''); try { const response = await fetch(`${apiBaseUrl}/exams/?student_code=${encodeURIComponent(code.trim())}`); const body = await readResponse(response); if (!response.ok) throw new Error(String(body.message || 'Could not load exams.')); setExams(body as unknown as AvailableExam[]) } catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not load exams.') } finally { setLoading(false) } }
-  async function start(examId: number) { setLoading(true); setError(''); try { const response = await fetch(`${apiBaseUrl}/exams/${examId}/start/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_code: code.trim() }) }); const body = await readResponse(response); if (!response.ok) throw new Error(String(body.message || 'Could not start exam.')); setAttempt(body as unknown as Attempt); setSelected(0) } catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not start exam.') } finally { setLoading(false) } }
-  useEffect(() => { if (!attempt || attempt.status === 'submitted' || !attempt.deadline) return; const tick = () => setSecondsLeft(Math.max(0, Math.floor((new Date(attempt.deadline as string).getTime() - Date.now()) / 1000))); tick(); const timer = window.setInterval(tick, 1000); return () => window.clearInterval(timer) }, [attempt])
-  async function answer(question: AttemptQuestion, choiceId: number) { if (!attempt || attempt.status === 'submitted') return; const response = await fetch(`${apiBaseUrl}/exam-attempts/${attempt.id}/answers/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_code: code.trim(), attempt_question_id: question.id, selected_choice_id: choiceId }) }); if (!response.ok) { const body = await readResponse(response); setError(String(body.message || 'Could not save answer.')); return } setAttempt({ ...attempt, questions: attempt.questions.map(item => item.id === question.id ? { ...item, answer: { selected_choice_id: choiceId, selected_answer_value: '' } } : item) }) }
-  async function submit() { if (!attempt) return; setLoading(true); try { const response = await fetch(`${apiBaseUrl}/exam-attempts/${attempt.id}/submit/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_code: code.trim() }) }); const body = await readResponse(response); if (!response.ok) throw new Error(String(body.message || 'Could not submit exam.')); setAttempt(body as unknown as Attempt) } catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not submit exam.') } finally { setLoading(false) } }
-  if (attempt) { const question = attempt.questions[selected]; return <div className="page exams-page"><div className="teacher-heading"><div><p className="eyebrow">{t.exams}</p><h1>{attempt.exam_name}</h1><p className="form-intro">{attempt.status === 'submitted' ? `${t.score}: ${attempt.score} / ${attempt.max_score} (${attempt.percentage}%)` : `${t.question} ${selected + 1} / ${attempt.questions.length}`}</p></div>{attempt.status === 'in_progress' && <div className="exam-timer">{t.timeLeft}: <strong>{secondsLeft === null ? '' : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`}</strong></div>}</div><div className="attempt-layout"><aside className="question-nav">{attempt.questions.map((item, index) => <button className={index === selected ? 'selected' : item.answer ? 'answered' : ''} key={item.id} onClick={() => setSelected(index)}>{index + 1}</button>)}</aside><section className="attempt-question"><p className="result-label">{question.question_type_snapshot === 'true_false' ? 'True / False' : 'Multiple choice'}</p><h2>{question.question_text_snapshot}</h2><div className="choice-list">{question.choices.map(choice => <button className={question.answer?.selected_choice_id === choice.id ? 'choice selected' : 'choice'} disabled={attempt.status === 'submitted'} key={choice.id} onClick={() => void answer(question, choice.id)}>{choice.text}{attempt.status === 'submitted' && question.correct_answer?.choice_id === choice.id && <b> ✓</b>}</button>)}</div>{attempt.status === 'submitted' && question.correct_answer && <div className={question.answer?.selected_choice_id === question.correct_answer.choice_id ? 'notice success-notice' : 'notice error-notice'}><strong>{question.answer?.selected_choice_id === question.correct_answer.choice_id ? t.correct : t.wrong}</strong><p>{question.correct_answer.value}</p></div>}<div className="attempt-actions">{selected > 0 && <button className="button text-button" onClick={() => setSelected(selected - 1)}>{t.back}</button>}{selected < attempt.questions.length - 1 && <button className="button primary" onClick={() => setSelected(selected + 1)}>{t.next}</button>}{attempt.status === 'in_progress' && <button className="button primary" disabled={loading} onClick={() => void submit()}>{t.submitExam}</button>}</div></section></div></div> }
-  return <div className="page exams-page"><div className="form-heading"><p className="eyebrow">{t.exams}</p><h1>{t.examTitle}</h1><p className="form-intro">{t.code}</p></div><form className="lookup-form exam-lookup-form" onSubmit={loadExams}><label className="field"><span>{t.code}</span><input value={code} onChange={event => setCode(event.target.value)} required /></label><button className="button primary" disabled={loading}>{loading ? t.searching : t.search}</button></form>{error && <div className="notice error-notice"><p>{error}</p></div>}<div className="exam-list">{exams.length ? exams.map(exam => <article className="exam-card" key={exam.id}><div className="exam-card-head"><div><h2>{exam.name}</h2><p>{exam.level} · {exam.exam_date}</p></div><strong>{exam.max_score}<small>{t.score}</small></strong></div><button className="arrow-link" onClick={() => void start(exam.id)}>{t.startExam} <span>→</span></button></article>) : <div className="empty-result"><strong>{t.noExams}</strong></div>}</div></div>
+  const [code, setCode] = useState("");
+  const [exams, setExams] = useState<AvailableExam[]>([]);
+  const [attempt, setAttempt] = useState<Attempt | null>(null);
+  const [selected, setSelected] = useState(0);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  async function loadExams(event: FormEvent) {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/exams/?student_code=${encodeURIComponent(code.trim())}`,
+      );
+      const body = await readResponse(response);
+      if (!response.ok)
+        throw new Error(String(body.message || "Could not load exams."));
+      setExams(body as unknown as AvailableExam[]);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not load exams.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function start(examId: number) {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${apiBaseUrl}/exams/${examId}/start/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ student_code: code.trim() }),
+      });
+      const body = await readResponse(response);
+      if (!response.ok)
+        throw new Error(String(body.message || "Could not start exam."));
+      setAttempt(body as unknown as Attempt);
+      setSelected(0);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not start exam.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    if (!attempt || attempt.status === "submitted" || !attempt.deadline) return;
+    const tick = () =>
+      setSecondsLeft(
+        Math.max(
+          0,
+          Math.floor(
+            (new Date(attempt.deadline as string).getTime() - Date.now()) /
+              1000,
+          ),
+        ),
+      );
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [attempt]);
+  async function answer(question: AttemptQuestion, choiceId: number) {
+    if (!attempt || attempt.status === "submitted") return;
+    const response = await fetch(
+      `${apiBaseUrl}/exam-attempts/${attempt.id}/answers/`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          student_code: code.trim(),
+          attempt_question_id: question.id,
+          selected_choice_id: choiceId,
+        }),
+      },
+    );
+    if (!response.ok) {
+      const body = await readResponse(response);
+      setError(String(body.message || "Could not save answer."));
+      return;
+    }
+    setAttempt({
+      ...attempt,
+      questions: attempt.questions.map((item) =>
+        item.id === question.id
+          ? {
+              ...item,
+              answer: {
+                selected_choice_id: choiceId,
+                selected_answer_value: "",
+              },
+            }
+          : item,
+      ),
+    });
+  }
+  async function submit() {
+    if (!attempt) return;
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/exam-attempts/${attempt.id}/submit/`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ student_code: code.trim() }),
+        },
+      );
+      const body = await readResponse(response);
+      if (!response.ok)
+        throw new Error(String(body.message || "Could not submit exam."));
+      setAttempt(body as unknown as Attempt);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not submit exam.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+  if (attempt) {
+    const question = attempt.questions[selected];
+    return (
+      <div className="page exams-page">
+        <div className="teacher-heading">
+          <div>
+            <p className="eyebrow">{t.exams}</p>
+            <h1>{attempt.exam_name}</h1>
+            <p className="form-intro">
+              {attempt.status === "submitted"
+                ? `${t.score}: ${attempt.score} / ${attempt.max_score} (${attempt.percentage}%)`
+                : `${t.question} ${selected + 1} / ${attempt.questions.length}`}
+            </p>
+          </div>
+          {attempt.status === "in_progress" && (
+            <div className="exam-timer">
+              {t.timeLeft}:{" "}
+              <strong>
+                {secondsLeft === null
+                  ? ""
+                  : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`}
+              </strong>
+            </div>
+          )}
+        </div>
+        <div className="attempt-layout">
+          <aside className="question-nav">
+            {attempt.questions.map((item, index) => (
+              <button
+                className={
+                  index === selected
+                    ? "selected"
+                    : item.answer
+                      ? "answered"
+                      : ""
+                }
+                key={item.id}
+                onClick={() => setSelected(index)}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </aside>
+          <section className="attempt-question">
+            <p className="result-label">
+              {question.question_type_snapshot === "true_false"
+                ? "True / False"
+                : "Multiple choice"}
+            </p>
+            <h2>{question.question_text_snapshot}</h2>
+            <div className="choice-list">
+              {question.choices.map((choice) => (
+                <button
+                  className={
+                    question.answer?.selected_choice_id === choice.id
+                      ? "choice selected"
+                      : "choice"
+                  }
+                  disabled={attempt.status === "submitted"}
+                  key={choice.id}
+                  onClick={() => void answer(question, choice.id)}
+                >
+                  {choice.text}
+                  {attempt.status === "submitted" &&
+                    question.correct_answer?.choice_id === choice.id && (
+                      <b> ✓</b>
+                    )}
+                </button>
+              ))}
+            </div>
+            {attempt.status === "submitted" && question.correct_answer && (
+              <div
+                className={
+                  question.answer?.selected_choice_id ===
+                  question.correct_answer.choice_id
+                    ? "notice success-notice"
+                    : "notice error-notice"
+                }
+              >
+                <strong>
+                  {question.answer?.selected_choice_id ===
+                  question.correct_answer.choice_id
+                    ? t.correct
+                    : t.wrong}
+                </strong>
+                <p>{question.correct_answer.value}</p>
+              </div>
+            )}
+            <div className="attempt-actions">
+              {selected > 0 && (
+                <button
+                  className="button text-button"
+                  onClick={() => setSelected(selected - 1)}
+                >
+                  {t.back}
+                </button>
+              )}
+              {selected < attempt.questions.length - 1 && (
+                <button
+                  className="button primary"
+                  onClick={() => setSelected(selected + 1)}
+                >
+                  {t.next}
+                </button>
+              )}
+              {attempt.status === "in_progress" && (
+                <button
+                  className="button primary"
+                  disabled={loading}
+                  onClick={() => void submit()}
+                >
+                  {t.submitExam}
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="page exams-page">
+      <div className="form-heading">
+        <p className="eyebrow">{t.exams}</p>
+        <h1>{t.examTitle}</h1>
+        <p className="form-intro">{t.code}</p>
+      </div>
+      <form className="lookup-form exam-lookup-form" onSubmit={loadExams}>
+        <label className="field">
+          <span>{t.code}</span>
+          <input
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            required
+          />
+        </label>
+        <button className="button primary" disabled={loading}>
+          {loading ? t.searching : t.search}
+        </button>
+      </form>
+      {error && (
+        <div className="notice error-notice">
+          <p>{error}</p>
+        </div>
+      )}
+      <div className="exam-list">
+        {exams.length ? (
+          exams.map((exam) => (
+            <article className="exam-card" key={exam.id}>
+              <div className="exam-card-head">
+                <div>
+                  <h2>{exam.name}</h2>
+                  <p>
+                    {exam.level} · {exam.exam_date}
+                  </p>
+                </div>
+                <strong>
+                  {exam.max_score}
+                  <small>{t.score}</small>
+                </strong>
+              </div>
+              <button
+                className="arrow-link"
+                onClick={() => void start(exam.id)}
+              >
+                {t.startExam} <span>→</span>
+              </button>
+            </article>
+          ))
+        ) : (
+          <div className="empty-result">
+            <strong>{t.noExams}</strong>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function TeacherAssessments() {
-  const [session, setSession] = useState<TeacherResponse | null>(null)
-  const [credentials, setCredentials] = useState({ username: '', password: '' })
-  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null)
-  const [selectedCode, setSelectedCode] = useState('')
-  const [scores, setScores] = useState({ written_score: '0', activity_dictation_score: '0', oral_score: '0', teacher_notes: '' })
-  const [error, setError] = useState('')
-  useEffect(() => { void load() }, [])
-  async function load() { const response = await teacherRequest('/teachers/me/'); if (response.ok) setSession(await response.json() as TeacherResponse) }
-  async function login(event: FormEvent) { event.preventDefault(); const response = await teacherRequest('/teachers/login/', { method: 'POST', body: JSON.stringify(credentials) }); if (response.ok) void load(); else setError('تعذر تسجيل الدخول.') }
-  async function save(event: FormEvent) { event.preventDefault(); const response = await teacherRequest(`/teachers/assessments/${selectedCode}/`, { method: 'PUT', body: JSON.stringify(scores) }); const body = await readResponse(response); setError(response.ok ? 'تم حفظ الدرجات.' : String(body.detail || 'تعذر حفظ الدرجات.')); if (response.ok) await load() }
-  function select(student: TeacherStudent) { const assessment = session?.assessments.find(item => item.student_code === student.student_code); setSelectedCode(student.student_code); setScores({ written_score: String(assessment?.written_score || 0), activity_dictation_score: String(assessment?.activity_dictation_score || 0), oral_score: String(assessment?.oral_score || 0), teacher_notes: assessment?.teacher_notes || '' }) }
-  if (!session) return <div className="page form-page teacher-page"><div className="form-heading"><p className="eyebrow">{copy.ar.teacher}</p><h1>بوابة المعلم.</h1></div><form className="teacher-login-form" onSubmit={login}><Field label="اسم المستخدم" value={credentials.username} onChange={value => setCredentials({ ...credentials, username: value })} required /><Field label="كلمة المرور" type="password" value={credentials.password} onChange={value => setCredentials({ ...credentials, password: value })} required />{error && <p className="form-error">{error}</p>}<button className="button primary">تسجيل الدخول</button></form></div>
-  const student = session.students.find(item => item.student_code === selectedCode)
-  const config = student ? session.assessment_configs.find(item => item.level_id === student.level_id) : null
-  const visibleStudents = selectedLevelId === null ? session.students : session.students.filter(item => item.level_id === selectedLevelId)
-  return <div className="page teacher-page"><div className="teacher-heading"><div><p className="eyebrow">بوابة المعلم</p><h1>درجات الطلاب.</h1><p className="form-intro">اختر المستوى ثم أدخل درجات النشاط والإملاء والشفوي.</p></div></div><section className="teacher-level-picker"><p className="result-label">المستويات</p><div className="teacher-level-options"><button type="button" className={selectedLevelId === null ? 'teacher-level-option selected' : 'teacher-level-option'} onClick={() => { setSelectedLevelId(null); setSelectedCode('') }}>كل المستويات</button>{session.levels.map(level => <button type="button" className={selectedLevelId === level.id ? 'teacher-level-option selected' : 'teacher-level-option'} key={level.id} onClick={() => { setSelectedLevelId(level.id); setSelectedCode('') }}>{level.name}</button>)}</div></section><section className="teacher-students"><p className="result-label">الطلاب</p><div className="teacher-student-list">{visibleStudents.map(item => <button type="button" className={item.student_code === selectedCode ? 'teacher-student selected' : 'teacher-student'} key={item.student_code} onClick={() => select(item)}><strong>{item.full_name}</strong><span>{item.student_code} · {item.level}</span></button>)}</div></section>{student && config && <form className="teacher-submission" onSubmit={save}><div className="teacher-submission-head"><div><p className="result-label">{student.full_name}</p><h2>{student.level}</h2></div><strong>المجموع الأقصى: {config.written_max + config.activity_dictation_max + config.oral_max}</strong></div><div className="teacher-score-grid"><Field label={`التحريري تلقائياً / ${config.written_max}`} type="number" value={scores.written_score} onChange={() => undefined} disabled /><Field label={`النشاط والإملاء / ${config.activity_dictation_max}`} type="number" value={scores.activity_dictation_score} onChange={value => setScores({ ...scores, activity_dictation_score: value })} /><Field label={`الشفوي / ${config.oral_max}`} type="number" value={scores.oral_score} onChange={value => setScores({ ...scores, oral_score: value })} /></div><label className="field"><span>ملاحظات المعلم</span><textarea value={scores.teacher_notes} onChange={event => setScores({ ...scores, teacher_notes: event.target.value })} /></label>{error && <p className={error === 'تم حفظ الدرجات.' ? 'form-success' : 'form-error'}>{error}</p>}<button className="button primary">حفظ الدرجات</button></form>}</div>
+  const [session, setSession] = useState<TeacherResponse | null>(null);
+  const [credentials, setCredentials] = useState({
+    username: "",
+    password: "",
+  });
+  const [selectedLevelId, setSelectedLevelId] = useState<number | null>(null);
+  const [selectedCode, setSelectedCode] = useState("");
+  const [scores, setScores] = useState({
+    written_score: "0",
+    activity_dictation_score: "0",
+    oral_score: "0",
+    teacher_notes: "",
+  });
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void load();
+  }, []);
+  async function load() {
+    const response = await teacherRequest("/teachers/me/");
+    if (response.ok) setSession((await response.json()) as TeacherResponse);
+  }
+  async function login(event: FormEvent) {
+    event.preventDefault();
+    const response = await teacherRequest("/teachers/login/", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+    if (response.ok) void load();
+    else setError("تعذر تسجيل الدخول.");
+  }
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    const response = await teacherRequest(
+      `/teachers/assessments/${selectedCode}/`,
+      { method: "PUT", body: JSON.stringify(scores) },
+    );
+    const body = await readResponse(response);
+    setError(
+      response.ok
+        ? "تم حفظ الدرجات."
+        : String(body.detail || "تعذر حفظ الدرجات."),
+    );
+    if (response.ok) await load();
+  }
+  function select(student: TeacherStudent) {
+    const assessment = session?.assessments.find(
+      (item) => item.student_code === student.student_code,
+    );
+    setSelectedCode(student.student_code);
+    setScores({
+      written_score: String(assessment?.written_score || 0),
+      activity_dictation_score: String(
+        assessment?.activity_dictation_score || 0,
+      ),
+      oral_score: String(assessment?.oral_score || 0),
+      teacher_notes: assessment?.teacher_notes || "",
+    });
+  }
+  if (!session)
+    return (
+      <div className="page form-page teacher-page">
+        <div className="form-heading">
+          <p className="eyebrow">{copy.ar.teacher}</p>
+          <h1>بوابة المعلم.</h1>
+        </div>
+        <form className="teacher-login-form" onSubmit={login}>
+          <Field
+            label="اسم المستخدم"
+            value={credentials.username}
+            onChange={(value) =>
+              setCredentials({ ...credentials, username: value })
+            }
+            required
+          />
+          <Field
+            label="كلمة المرور"
+            type="password"
+            value={credentials.password}
+            onChange={(value) =>
+              setCredentials({ ...credentials, password: value })
+            }
+            required
+          />
+          {error && <p className="form-error">{error}</p>}
+          <button className="button primary">تسجيل الدخول</button>
+        </form>
+      </div>
+    );
+  const student = session.students.find(
+    (item) => item.student_code === selectedCode,
+  );
+  const config = student
+    ? session.assessment_configs.find(
+        (item) => item.level_id === student.level_id,
+      )
+    : null;
+  const visibleStudents =
+    selectedLevelId === null
+      ? session.students
+      : session.students.filter((item) => item.level_id === selectedLevelId);
+  return (
+    <div className="page teacher-page">
+      <div className="teacher-heading">
+        <div>
+          <p className="eyebrow">بوابة المعلم</p>
+          <h1>درجات الطلاب.</h1>
+          <p className="form-intro">
+            اختر المستوى ثم أدخل درجات النشاط والإملاء والشفوي.
+          </p>
+        </div>
+      </div>
+      <section className="teacher-level-picker">
+        <p className="result-label">المستويات</p>
+        <div className="teacher-level-options">
+          <button
+            type="button"
+            className={
+              selectedLevelId === null
+                ? "teacher-level-option selected"
+                : "teacher-level-option"
+            }
+            onClick={() => {
+              setSelectedLevelId(null);
+              setSelectedCode("");
+            }}
+          >
+            كل المستويات
+          </button>
+          {session.levels.map((level) => (
+            <button
+              type="button"
+              className={
+                selectedLevelId === level.id
+                  ? "teacher-level-option selected"
+                  : "teacher-level-option"
+              }
+              key={level.id}
+              onClick={() => {
+                setSelectedLevelId(level.id);
+                setSelectedCode("");
+              }}
+            >
+              {level.name}
+            </button>
+          ))}
+        </div>
+      </section>
+      <section className="teacher-students">
+        <p className="result-label">الطلاب</p>
+        <div className="teacher-student-list">
+          {visibleStudents.map((item) => (
+            <button
+              type="button"
+              className={
+                item.student_code === selectedCode
+                  ? "teacher-student selected"
+                  : "teacher-student"
+              }
+              key={item.student_code}
+              onClick={() => select(item)}
+            >
+              <strong>{item.full_name}</strong>
+              <span>
+                {item.student_code} · {item.level}
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+      {student && config && (
+        <form className="teacher-submission" onSubmit={save}>
+          <div className="teacher-submission-head">
+            <div>
+              <p className="result-label">{student.full_name}</p>
+              <h2>{student.level}</h2>
+            </div>
+            <strong>
+              المجموع الأقصى:{" "}
+              {config.written_max +
+                config.activity_dictation_max +
+                config.oral_max}
+            </strong>
+          </div>
+          <div className="teacher-score-grid">
+            <Field
+              label={`التحريري تلقائياً / ${config.written_max}`}
+              type="number"
+              value={scores.written_score}
+              onChange={() => undefined}
+              disabled
+            />
+            <Field
+              label={`النشاط والإملاء / ${config.activity_dictation_max}`}
+              type="number"
+              value={scores.activity_dictation_score}
+              onChange={(value) =>
+                setScores({ ...scores, activity_dictation_score: value })
+              }
+            />
+            <Field
+              label={`الشفوي / ${config.oral_max}`}
+              type="number"
+              value={scores.oral_score}
+              onChange={(value) => setScores({ ...scores, oral_score: value })}
+            />
+          </div>
+          <label className="field">
+            <span>ملاحظات المعلم</span>
+            <textarea
+              value={scores.teacher_notes}
+              onChange={(event) =>
+                setScores({ ...scores, teacher_notes: event.target.value })
+              }
+            />
+          </label>
+          {error && (
+            <p
+              className={
+                error === "تم حفظ الدرجات." ? "form-success" : "form-error"
+              }
+            >
+              {error}
+            </p>
+          )}
+          <button className="button primary">حفظ الدرجات</button>
+        </form>
+      )}
+    </div>
+  );
 }
 
-async function teacherRequest(path: string, init: RequestInit = {}) { const csrfResponse = await fetch(`${apiBaseUrl}/teachers/csrf/`, { credentials: 'include' }); const csrfBody = await csrfResponse.json() as ApiObject; return fetch(`${apiBaseUrl}${path}`, { ...init, credentials: 'include', headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}), 'X-CSRFToken': String(csrfBody.csrf_token || '') } }) }
-void Teacher
-function Teacher() { const [session, setSession] = useState<TeacherResponse | null>(null); const [credentials, setCredentials] = useState({ username: '', password: '' }); const [error, setError] = useState(''); useEffect(() => { void load() }, []); async function load() { const response = await teacherRequest('/teachers/me/'); if (response.ok) setSession(await response.json() as TeacherResponse) } async function login(event: FormEvent) { event.preventDefault(); const response = await teacherRequest('/teachers/login/', { method: 'POST', body: JSON.stringify(credentials) }); if (response.ok) void load(); else setError('تعذر تسجيل الدخول.') } async function logout() { await teacherRequest('/teachers/logout/', { method: 'POST' }); setSession(null) } if (!session) return <div className="page form-page teacher-page"><div className="form-heading"><p className="eyebrow">{copy.ar.teacher}</p><h1>بوابة المعلم.</h1></div><form className="teacher-login-form" onSubmit={login}><Field label="اسم المستخدم" value={credentials.username} onChange={value => setCredentials({ ...credentials, username: value })} required /><Field label="كلمة المرور" type="password" value={credentials.password} onChange={value => setCredentials({ ...credentials, password: value })} required />{error && <p className="form-error">{error}</p>}<button className="button primary">تسجيل الدخول</button></form></div>; return <div className="page teacher-page"><div className="teacher-heading"><div><p className="eyebrow">بوابة المعلم</p><h1>نماذج الاختبارات قريباً.</h1><p className="form-intro">ستظهر إدارة الاختبارات الإلكترونية في المرحلة القادمة.</p></div><button className="button text-button" onClick={logout}>تسجيل الخروج</button></div><section className="teacher-students"><p className="result-label">الطلاب في المستويات المعيّنة</p><div className="teacher-student-list">{session.students.map(student => <div className="teacher-student" key={student.student_code}><strong>{student.full_name}</strong><span>{student.student_code} · {student.level || 'بدون مستوى'}</span></div>)}</div></section></div> }
-async function adminRequest(path: string, init: RequestInit = {}) { const csrfResponse = await fetch(`${apiBaseUrl}/teachers/csrf/`, { credentials: 'include' }); const csrfBody = await csrfResponse.json() as ApiObject; return fetch(`${apiBaseUrl}${path}`, { ...init, credentials: 'include', headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}), 'X-CSRFToken': String(csrfBody.csrf_token || '') } }) }
+async function teacherRequest(path: string, init: RequestInit = {}) {
+  const csrfResponse = await fetch(`${apiBaseUrl}/teachers/csrf/`, {
+    credentials: "include",
+  });
+  const csrfBody = (await csrfResponse.json()) as ApiObject;
+  return fetch(`${apiBaseUrl}${path}`, {
+    ...init,
+    credentials: "include",
+    headers: {
+      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...(init.headers || {}),
+      "X-CSRFToken": String(csrfBody.csrf_token || ""),
+    },
+  });
+}
+void Teacher;
+function Teacher() {
+  const [session, setSession] = useState<TeacherResponse | null>(null);
+  const [credentials, setCredentials] = useState({
+    username: "",
+    password: "",
+  });
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void load();
+  }, []);
+  async function load() {
+    const response = await teacherRequest("/teachers/me/");
+    if (response.ok) setSession((await response.json()) as TeacherResponse);
+  }
+  async function login(event: FormEvent) {
+    event.preventDefault();
+    const response = await teacherRequest("/teachers/login/", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+    if (response.ok) void load();
+    else setError("تعذر تسجيل الدخول.");
+  }
+  async function logout() {
+    await teacherRequest("/teachers/logout/", { method: "POST" });
+    setSession(null);
+  }
+  if (!session)
+    return (
+      <div className="page form-page teacher-page">
+        <div className="form-heading">
+          <p className="eyebrow">{copy.ar.teacher}</p>
+          <h1>بوابة المعلم.</h1>
+        </div>
+        <form className="teacher-login-form" onSubmit={login}>
+          <Field
+            label="اسم المستخدم"
+            value={credentials.username}
+            onChange={(value) =>
+              setCredentials({ ...credentials, username: value })
+            }
+            required
+          />
+          <Field
+            label="كلمة المرور"
+            type="password"
+            value={credentials.password}
+            onChange={(value) =>
+              setCredentials({ ...credentials, password: value })
+            }
+            required
+          />
+          {error && <p className="form-error">{error}</p>}
+          <button className="button primary">تسجيل الدخول</button>
+        </form>
+      </div>
+    );
+  return (
+    <div className="page teacher-page">
+      <div className="teacher-heading">
+        <div>
+          <p className="eyebrow">بوابة المعلم</p>
+          <h1>نماذج الاختبارات قريباً.</h1>
+          <p className="form-intro">
+            ستظهر إدارة الاختبارات الإلكترونية في المرحلة القادمة.
+          </p>
+        </div>
+        <button className="button text-button" onClick={logout}>
+          تسجيل الخروج
+        </button>
+      </div>
+      <section className="teacher-students">
+        <p className="result-label">الطلاب في المستويات المعيّنة</p>
+        <div className="teacher-student-list">
+          {session.students.map((student) => (
+            <div className="teacher-student" key={student.student_code}>
+              <strong>{student.full_name}</strong>
+              <span>
+                {student.student_code} · {student.level || "بدون مستوى"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+async function adminRequest(path: string, init: RequestInit = {}) {
+  const csrfResponse = await fetch(`${apiBaseUrl}/teachers/csrf/`, {
+    credentials: "include",
+  });
+  const csrfBody = (await csrfResponse.json()) as ApiObject;
+  return fetch(`${apiBaseUrl}${path}`, {
+    ...init,
+    credentials: "include",
+    headers: {
+      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...(init.headers || {}),
+      "X-CSRFToken": String(csrfBody.csrf_token || ""),
+    },
+  });
+}
 
 function AdminGenerator() {
-  const [session, setSession] = useState(false); const [credentials, setCredentials] = useState({ username: '', password: '' }); const [levels, setLevels] = useState<GeneratorLevel[]>([]); const [levelId, setLevelId] = useState(''); const [form, setForm] = useState({ name: '', question_count: '0', max_score: '75', exam_date: new Date().toISOString().slice(0, 10), time_limit_minutes: '60', opens_at: '', closes_at: '', multiple_choice_count: '25', true_false_count: '25' }); const [error, setError] = useState(''); const [created, setCreated] = useState<GeneratedExam | null>(null); const [preview, setPreview] = useState<PreviewQuestion[]>([]); const selectedLevel = levels.find(level => String(level.id) === levelId); const selectedQuestionCount = selectedLevel?.sources.reduce((total, source) => total + source.count, 0) || 0
-  useEffect(() => { void checkSession() }, [])
-  async function checkSession() { const response = await adminRequest('/exams/admin-session/me/'); if (response.ok) { setSession(true); void loadData() } }
-  async function login(event: FormEvent) { event.preventDefault(); const response = await adminRequest('/exams/admin-session/login/', { method: 'POST', body: JSON.stringify(credentials) }); if (!response.ok) { const body = await readResponse(response); setError(String(body.message || 'Login failed.')); return } setSession(true); void loadData() }
-  async function loadData() { const response = await adminRequest('/exams/admin-generator/data/'); const body = await readResponse(response); if (!response.ok) { setError(String(body.message || 'Could not load generator data.')); return } const availableLevels = (body.levels as GeneratorLevel[]).map(level => ({ ...level, sources: level.sources.map(source => ({ ...source, count: 0 })) })); setLevels(availableLevels); if (!levelId && availableLevels.length > 0) setLevelId(String(availableLevels[0].id)) }
-  function updateSource(sourceId: number, count: string) { const requestedCount = Math.max(0, Number(count) || 0); const source = selectedLevel?.sources.find(item => item.id === sourceId); const nextCount = Math.min(requestedCount, source?.available_questions || 0); setLevels(current => current.map(level => ({ ...level, sources: level.id === Number(levelId) ? level.sources.map(item => item.id === sourceId ? { ...item, count: nextCount } : item) : level.sources }))); if (requestedCount > (Number(form.question_count) || 0)) setError(`This file cannot provide more than ${form.question_count} questions for this exam.`) }
-  async function create(event: FormEvent) { event.preventDefault(); setError(''); setCreated(null); const requestedTotal = Number(form.question_count); const multipleChoiceCount = Number(form.multiple_choice_count); const trueFalseCount = Number(form.true_false_count); if (selectedQuestionCount > requestedTotal) { setError(`Selected questions (${selectedQuestionCount}) cannot exceed the exam total (${requestedTotal}).`); return } if (multipleChoiceCount + trueFalseCount !== requestedTotal) { setError('Multiple-choice and true/false counts must equal the exam total.'); return } if (selectedQuestionCount !== requestedTotal) { setError(`Select exactly ${requestedTotal} questions from the Word files.`); return } const response = await adminRequest('/exams/admin-generator/exams/', { method: 'POST', body: JSON.stringify({ ...form, level_id: Number(levelId), question_count: requestedTotal, multiple_choice_count: multipleChoiceCount, true_false_count: trueFalseCount, max_score: Number(form.max_score), time_limit_minutes: form.time_limit_minutes ? Number(form.time_limit_minutes) : null, allocations: (selectedLevel?.sources || []).filter(source => source.count > 0).map(source => ({ source_id: source.id, question_count: source.count })) }) }); const body = await readResponse(response); if (!response.ok) { setError(String(body.message || 'Could not create exam.')); return } setCreated(body as unknown as GeneratedExam) }
-  async function showPreview() { if (!created) return; const response = await adminRequest(`/exams/admin-generator/exams/${created.id}/preview/`); const body = await readResponse(response); if (!response.ok) { setError(String(body.message || 'Could not load preview.')); return } setPreview(body.questions as PreviewQuestion[]) }
-  async function changeStatus(nextStatus: 'open' | 'closed') { if (!created) return; const response = await adminRequest(`/exams/admin-generator/exams/${created.id}/status/`, { method: 'POST', body: JSON.stringify({ status: nextStatus }) }); const body = await readResponse(response); if (!response.ok) { setError(String(body.message || 'Could not update exam status.')); return } setCreated(body as unknown as GeneratedExam) }
-  if (!session) return <div className="page form-page admin-generator-page"><div className="form-heading"><p className="eyebrow">Administrator</p><h1>Exam generator.</h1></div><form className="teacher-login-form" onSubmit={login}><Field label="Username" value={credentials.username} onChange={value => setCredentials({ ...credentials, username: value })} required /><Field label="Password" type="password" value={credentials.password} onChange={value => setCredentials({ ...credentials, password: value })} required />{error && <p className="form-error">{error}</p>}<button className="button primary">Sign in</button></form></div>
-  return <div className="page admin-generator-page"><div className="teacher-heading"><div><p className="eyebrow">Administrator dashboard</p><h1>Generate an exam.</h1><p className="form-intro">Choose a level, distribute questions across Word files, and create a draft.</p></div></div><form className="generator-form" onSubmit={create}><div className="generator-settings"><Field label="Exam name" value={form.name} onChange={value => setForm({ ...form, name: value })} required /><label className="field"><span>Level</span><select value={levelId} onChange={event => setLevelId(event.target.value)} required><option value="">Choose a level</option>{levels.map(level => <option key={level.id} value={level.id}>{level.name}</option>)}</select></label><Field label="Total questions" type="number" value={form.question_count} onChange={value => setForm({ ...form, question_count: value })} required /><Field label="Exam score" type="number" value={form.max_score} onChange={value => setForm({ ...form, max_score: value })} required /><Field label="Exam date" type="date" value={form.exam_date} onChange={value => setForm({ ...form, exam_date: value })} required /><Field label="Time limit (minutes)" type="number" value={form.time_limit_minutes} onChange={value => setForm({ ...form, time_limit_minutes: value })} /><Field label="Opens at" type="datetime-local" value={form.opens_at} onChange={value => setForm({ ...form, opens_at: value })} /><Field label="Closes at" type="datetime-local" value={form.closes_at} onChange={value => setForm({ ...form, closes_at: value })} /></div>{selectedLevel && <section className="source-allocation"><div className="generator-section-heading"><p className="result-label">Question distribution</p><strong>{selectedLevel.name}</strong></div>{selectedLevel.sources.map(source => <label className="source-allocation-row" key={source.id}><span><strong>{source.subject}</strong><small>{source.filename} · {source.available_questions} available</small></span><input type="number" min="0" max={source.available_questions} value={source.count || ''} onChange={event => updateSource(source.id, event.target.value)} /></label>)}</section>}{error && <p className="form-error">{error}</p>}<button className="button primary" type="submit">Create draft exam</button></form>{created && <section className="created-exam"><p className="result-label">{created.status === 'open' ? 'Exam open' : created.status === 'closed' ? 'Exam closed' : 'Draft created'}</p><h2>{created.name}</h2><p>{created.question_count} questions · {created.max_score} points · {created.points_per_question} per question</p><div className="teacher-actions"><button className="button text-button" type="button" onClick={() => void showPreview()}>Preview questions</button>{created.status === 'draft' && <button className="button primary" type="button" onClick={() => void changeStatus('open')}>Open exam</button>}{created.status === 'open' && <button className="button text-button" type="button" onClick={() => void changeStatus('closed')}>Close exam</button>}</div>{preview.length > 0 && <div className="generator-preview">{preview.map((question, index) => <article key={`${question.source}-${index}`}><strong>{index + 1}. {question.prompt}</strong><small>{question.subject} · {question.source} · {question.points} points</small></article>)}</div>}</section>}</div>
+  const [session, setSession] = useState(false);
+  const [credentials, setCredentials] = useState({
+    username: "",
+    password: "",
+  });
+  const [levels, setLevels] = useState<GeneratorLevel[]>([]);
+  const [levelId, setLevelId] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    question_count: "0",
+    max_score: "75",
+    exam_date: new Date().toISOString().slice(0, 10),
+    time_limit_minutes: "60",
+    opens_at: "",
+    closes_at: "",
+    multiple_choice_count: "25",
+    true_false_count: "25",
+  });
+  const [error, setError] = useState("");
+  const [created, setCreated] = useState<GeneratedExam | null>(null);
+  const [preview, setPreview] = useState<PreviewQuestion[]>([]);
+  const selectedLevel = levels.find((level) => String(level.id) === levelId);
+  const selectedQuestionCount =
+    selectedLevel?.sources.reduce((total, source) => total + source.count, 0) ||
+    0;
+  useEffect(() => {
+    void checkSession();
+  }, []);
+  async function checkSession() {
+    const response = await adminRequest("/exams/admin-session/me/");
+    if (response.ok) {
+      setSession(true);
+      void loadData();
+    }
+  }
+  async function login(event: FormEvent) {
+    event.preventDefault();
+    const response = await adminRequest("/exams/admin-session/login/", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+    if (!response.ok) {
+      const body = await readResponse(response);
+      setError(String(body.message || "Login failed."));
+      return;
+    }
+    setSession(true);
+    void loadData();
+  }
+  async function loadData() {
+    const response = await adminRequest("/exams/admin-generator/data/");
+    const body = await readResponse(response);
+    if (!response.ok) {
+      setError(String(body.message || "Could not load generator data."));
+      return;
+    }
+    const availableLevels = (body.levels as GeneratorLevel[]).map((level) => ({
+      ...level,
+      sources: level.sources.map((source) => ({ ...source, count: 0 })),
+    }));
+    setLevels(availableLevels);
+    if (!levelId && availableLevels.length > 0)
+      setLevelId(String(availableLevels[0].id));
+  }
+  function updateSource(sourceId: number, count: string) {
+    const requestedCount = Math.max(0, Number(count) || 0);
+    const source = selectedLevel?.sources.find((item) => item.id === sourceId);
+    const nextCount = Math.min(
+      requestedCount,
+      source?.available_questions || 0,
+    );
+    setLevels((current) =>
+      current.map((level) => ({
+        ...level,
+        sources:
+          level.id === Number(levelId)
+            ? level.sources.map((item) =>
+                item.id === sourceId ? { ...item, count: nextCount } : item,
+              )
+            : level.sources,
+      })),
+    );
+    if (requestedCount > (Number(form.question_count) || 0))
+      setError(
+        `This file cannot provide more than ${form.question_count} questions for this exam.`,
+      );
+  }
+  async function create(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    setCreated(null);
+    const requestedTotal = Number(form.question_count);
+    const multipleChoiceCount = Number(form.multiple_choice_count);
+    const trueFalseCount = Number(form.true_false_count);
+    if (selectedQuestionCount > requestedTotal) {
+      setError(
+        `Selected questions (${selectedQuestionCount}) cannot exceed the exam total (${requestedTotal}).`,
+      );
+      return;
+    }
+    if (multipleChoiceCount + trueFalseCount !== requestedTotal) {
+      setError(
+        "Multiple-choice and true/false counts must equal the exam total.",
+      );
+      return;
+    }
+    if (selectedQuestionCount !== requestedTotal) {
+      setError(
+        `Select exactly ${requestedTotal} questions from the Word files.`,
+      );
+      return;
+    }
+    const response = await adminRequest("/exams/admin-generator/exams/", {
+      method: "POST",
+      body: JSON.stringify({
+        ...form,
+        level_id: Number(levelId),
+        question_count: requestedTotal,
+        multiple_choice_count: multipleChoiceCount,
+        true_false_count: trueFalseCount,
+        max_score: Number(form.max_score),
+        time_limit_minutes: form.time_limit_minutes
+          ? Number(form.time_limit_minutes)
+          : null,
+        allocations: (selectedLevel?.sources || [])
+          .filter((source) => source.count > 0)
+          .map((source) => ({
+            source_id: source.id,
+            question_count: source.count,
+          })),
+      }),
+    });
+    const body = await readResponse(response);
+    if (!response.ok) {
+      setError(String(body.message || "Could not create exam."));
+      return;
+    }
+    setCreated(body as unknown as GeneratedExam);
+  }
+  async function showPreview() {
+    if (!created) return;
+    const response = await adminRequest(
+      `/exams/admin-generator/exams/${created.id}/preview/`,
+    );
+    const body = await readResponse(response);
+    if (!response.ok) {
+      setError(String(body.message || "Could not load preview."));
+      return;
+    }
+    setPreview(body.questions as PreviewQuestion[]);
+  }
+  async function changeStatus(nextStatus: "open" | "closed") {
+    if (!created) return;
+    const response = await adminRequest(
+      `/exams/admin-generator/exams/${created.id}/status/`,
+      { method: "POST", body: JSON.stringify({ status: nextStatus }) },
+    );
+    const body = await readResponse(response);
+    if (!response.ok) {
+      setError(String(body.message || "Could not update exam status."));
+      return;
+    }
+    setCreated(body as unknown as GeneratedExam);
+  }
+  if (!session)
+    return (
+      <div className="page form-page admin-generator-page">
+        <div className="form-heading">
+          <p className="eyebrow">Administrator</p>
+          <h1>Exam generator.</h1>
+        </div>
+        <form className="teacher-login-form" onSubmit={login}>
+          <Field
+            label="Username"
+            value={credentials.username}
+            onChange={(value) =>
+              setCredentials({ ...credentials, username: value })
+            }
+            required
+          />
+          <Field
+            label="Password"
+            type="password"
+            value={credentials.password}
+            onChange={(value) =>
+              setCredentials({ ...credentials, password: value })
+            }
+            required
+          />
+          {error && <p className="form-error">{error}</p>}
+          <button className="button primary">Sign in</button>
+        </form>
+      </div>
+    );
+  return (
+    <div className="page admin-generator-page">
+      <div className="teacher-heading">
+        <div>
+          <p className="eyebrow">Administrator dashboard</p>
+          <h1>Generate an exam.</h1>
+          <p className="form-intro">
+            Choose a level, distribute questions across Word files, and create a
+            draft.
+          </p>
+        </div>
+      </div>
+      <form className="generator-form" onSubmit={create}>
+        <div className="generator-settings">
+          <Field
+            label="Exam name"
+            value={form.name}
+            onChange={(value) => setForm({ ...form, name: value })}
+            required
+          />
+          <label className="field">
+            <span>Level</span>
+            <select
+              value={levelId}
+              onChange={(event) => setLevelId(event.target.value)}
+              required
+            >
+              <option value="">Choose a level</option>
+              {levels.map((level) => (
+                <option key={level.id} value={level.id}>
+                  {level.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Field
+            label="Total questions"
+            type="number"
+            value={form.question_count}
+            onChange={(value) => setForm({ ...form, question_count: value })}
+            required
+          />
+          <Field
+            label="Exam score"
+            type="number"
+            value={form.max_score}
+            onChange={(value) => setForm({ ...form, max_score: value })}
+            required
+          />
+          <Field
+            label="Exam date"
+            type="date"
+            value={form.exam_date}
+            onChange={(value) => setForm({ ...form, exam_date: value })}
+            required
+          />
+          <Field
+            label="Time limit (minutes)"
+            type="number"
+            value={form.time_limit_minutes}
+            onChange={(value) =>
+              setForm({ ...form, time_limit_minutes: value })
+            }
+          />
+          <Field
+            label="Opens at"
+            type="datetime-local"
+            value={form.opens_at}
+            onChange={(value) => setForm({ ...form, opens_at: value })}
+          />
+          <Field
+            label="Closes at"
+            type="datetime-local"
+            value={form.closes_at}
+            onChange={(value) => setForm({ ...form, closes_at: value })}
+          />
+        </div>
+        {selectedLevel && (
+          <section className="source-allocation">
+            <div className="generator-section-heading">
+              <p className="result-label">Question distribution</p>
+              <strong>{selectedLevel.name}</strong>
+            </div>
+            {selectedLevel.sources.map((source) => (
+              <label className="source-allocation-row" key={source.id}>
+                <span>
+                  <strong>{source.subject}</strong>
+                  <small>
+                    {source.filename} · {source.available_questions} available
+                  </small>
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  max={source.available_questions}
+                  value={source.count || ""}
+                  onChange={(event) =>
+                    updateSource(source.id, event.target.value)
+                  }
+                />
+              </label>
+            ))}
+          </section>
+        )}
+        {error && <p className="form-error">{error}</p>}
+        <button className="button primary" type="submit">
+          Create draft exam
+        </button>
+      </form>
+      {created && (
+        <section className="created-exam">
+          <p className="result-label">
+            {created.status === "open"
+              ? "Exam open"
+              : created.status === "closed"
+                ? "Exam closed"
+                : "Draft created"}
+          </p>
+          <h2>{created.name}</h2>
+          <p>
+            {created.question_count} questions · {created.max_score} points ·{" "}
+            {created.points_per_question} per question
+          </p>
+          <div className="teacher-actions">
+            <button
+              className="button text-button"
+              type="button"
+              onClick={() => void showPreview()}
+            >
+              Preview questions
+            </button>
+            {created.status === "draft" && (
+              <button
+                className="button primary"
+                type="button"
+                onClick={() => void changeStatus("open")}
+              >
+                Open exam
+              </button>
+            )}
+            {created.status === "open" && (
+              <button
+                className="button text-button"
+                type="button"
+                onClick={() => void changeStatus("closed")}
+              >
+                Close exam
+              </button>
+            )}
+          </div>
+          {preview.length > 0 && (
+            <div className="generator-preview">
+              {preview.map((question, index) => (
+                <article key={`${question.source}-${index}`}>
+                  <strong>
+                    {index + 1}. {question.prompt}
+                  </strong>
+                  <small>
+                    {question.subject} · {question.source} · {question.points}{" "}
+                    points
+                  </small>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  );
 }
 
 function StaffAdmin() {
-  const [authorized, setAuthorized] = useState(false); const [credentials, setCredentials] = useState({ username: '', password: '' }); const [staff, setStaff] = useState<StaffAccount[]>([]); const [logs, setLogs] = useState<AuditEntry[]>([]); const [form, setForm] = useState({ username: '', password: '', role: 'viewer' }); const [error, setError] = useState('')
-  useEffect(() => { void load() }, [])
-  async function load() { const sessionResponse = await adminRequest('/exams/admin-session/me/'); if (!sessionResponse.ok) return; const session = await readResponse(sessionResponse); if (!session.is_superuser) return; setAuthorized(true); const [staffResponse, logsResponse] = await Promise.all([adminRequest('/core/staff/'), adminRequest('/core/audit-logs/')]); if (staffResponse.ok) setStaff(await staffResponse.json() as StaffAccount[]); if (logsResponse.ok) setLogs(await logsResponse.json() as AuditEntry[]) }
-  async function login(event: FormEvent) { event.preventDefault(); const response = await adminRequest('/exams/admin-session/login/', { method: 'POST', body: JSON.stringify(credentials) }); if (!response.ok) { const body = await readResponse(response); setError(String(body.message || 'Login failed.')); return } void load() }
-  async function createStaff(event: FormEvent) { event.preventDefault(); setError(''); const response = await adminRequest('/core/staff/', { method: 'POST', body: JSON.stringify(form) }); const body = await readResponse(response); if (!response.ok) { setError(String(body.message || 'Could not create account.')); return } setForm({ username: '', password: '', role: 'viewer' }); void load() }
-  async function toggle(user: StaffAccount) { await adminRequest(`/core/staff/${user.id}/`, { method: 'PATCH', body: JSON.stringify({ is_active: !user.is_active }) }); void load() }
-  if (!authorized) return <div className="page form-page"><div className="form-heading"><p className="eyebrow">Staff administration</p><h1>Manage access.</h1></div><form className="teacher-login-form" onSubmit={login}><Field label="Username" value={credentials.username} onChange={value => setCredentials({ ...credentials, username: value })} required /><Field label="Password" type="password" value={credentials.password} onChange={value => setCredentials({ ...credentials, password: value })} required />{error && <p className="form-error">{error}</p>}<button className="button primary">Sign in</button></form></div>
-  return <div className="page teacher-page staff-admin-page"><div className="teacher-heading"><div><p className="eyebrow">Staff administration</p><h1>Manage access.</h1><p className="form-intro">Create separate accounts for people helping with exams. Never share your password.</p></div></div><form className="staff-form" onSubmit={createStaff}><Field label="Username" value={form.username} onChange={value => setForm({ ...form, username: value })} required /><Field label="Temporary password" type="password" value={form.password} onChange={value => setForm({ ...form, password: value })} required /><label className="field"><span>Role</span><select value={form.role} onChange={event => setForm({ ...form, role: event.target.value })}><option value="viewer">Viewer</option><option value="editor">Editor</option><option value="administrator">Administrator</option></select></label><button className="button primary">Create staff account</button>{error && <p className="form-error">{error}</p>}</form><div className="staff-list">{staff.map(user => <article className="staff-row" key={user.id}><div><strong>{user.username}</strong><small>{user.is_superuser ? 'Superuser' : user.role}</small></div><button className="button text-button" disabled={user.is_superuser} onClick={() => void toggle(user)}>{user.is_active ? 'Disable' : 'Enable'}</button></article>)}</div><div className="audit-list"><p className="result-label">Recent activity</p>{logs.slice(0, 8).map(log => <p key={log.id}><strong>{log.actor}</strong> · {log.action} · {log.target_type} {log.target_id}</p>)}</div></div>
+  const [authorized, setAuthorized] = useState(false);
+  const [credentials, setCredentials] = useState({
+    username: "",
+    password: "",
+  });
+  const [staff, setStaff] = useState<StaffAccount[]>([]);
+  const [logs, setLogs] = useState<AuditEntry[]>([]);
+  const [form, setForm] = useState({
+    username: "",
+    password: "",
+    role: "viewer",
+  });
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void load();
+  }, []);
+  async function load() {
+    const sessionResponse = await adminRequest("/exams/admin-session/me/");
+    if (!sessionResponse.ok) return;
+    const session = await readResponse(sessionResponse);
+    if (!session.is_superuser) return;
+    setAuthorized(true);
+    const [staffResponse, logsResponse] = await Promise.all([
+      adminRequest("/core/staff/"),
+      adminRequest("/core/audit-logs/"),
+    ]);
+    if (staffResponse.ok)
+      setStaff((await staffResponse.json()) as StaffAccount[]);
+    if (logsResponse.ok) setLogs((await logsResponse.json()) as AuditEntry[]);
+  }
+  async function login(event: FormEvent) {
+    event.preventDefault();
+    const response = await adminRequest("/exams/admin-session/login/", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+    if (!response.ok) {
+      const body = await readResponse(response);
+      setError(String(body.message || "Login failed."));
+      return;
+    }
+    void load();
+  }
+  async function createStaff(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    const response = await adminRequest("/core/staff/", {
+      method: "POST",
+      body: JSON.stringify(form),
+    });
+    const body = await readResponse(response);
+    if (!response.ok) {
+      setError(String(body.message || "Could not create account."));
+      return;
+    }
+    setForm({ username: "", password: "", role: "viewer" });
+    void load();
+  }
+  async function toggle(user: StaffAccount) {
+    await adminRequest(`/core/staff/${user.id}/`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_active: !user.is_active }),
+    });
+    void load();
+  }
+  if (!authorized)
+    return (
+      <div className="page form-page">
+        <div className="form-heading">
+          <p className="eyebrow">Staff administration</p>
+          <h1>Manage access.</h1>
+        </div>
+        <form className="teacher-login-form" onSubmit={login}>
+          <Field
+            label="Username"
+            value={credentials.username}
+            onChange={(value) =>
+              setCredentials({ ...credentials, username: value })
+            }
+            required
+          />
+          <Field
+            label="Password"
+            type="password"
+            value={credentials.password}
+            onChange={(value) =>
+              setCredentials({ ...credentials, password: value })
+            }
+            required
+          />
+          {error && <p className="form-error">{error}</p>}
+          <button className="button primary">Sign in</button>
+        </form>
+      </div>
+    );
+  return (
+    <div className="page teacher-page staff-admin-page">
+      <div className="teacher-heading">
+        <div>
+          <p className="eyebrow">Staff administration</p>
+          <h1>Manage access.</h1>
+          <p className="form-intro">
+            Create separate accounts for people helping with exams. Never share
+            your password.
+          </p>
+        </div>
+      </div>
+      <form className="staff-form" onSubmit={createStaff}>
+        <Field
+          label="Username"
+          value={form.username}
+          onChange={(value) => setForm({ ...form, username: value })}
+          required
+        />
+        <Field
+          label="Temporary password"
+          type="password"
+          value={form.password}
+          onChange={(value) => setForm({ ...form, password: value })}
+          required
+        />
+        <label className="field">
+          <span>Role</span>
+          <select
+            value={form.role}
+            onChange={(event) => setForm({ ...form, role: event.target.value })}
+          >
+            <option value="viewer">Viewer</option>
+            <option value="editor">Editor</option>
+            <option value="administrator">Administrator</option>
+          </select>
+        </label>
+        <button className="button primary">Create staff account</button>
+        {error && <p className="form-error">{error}</p>}
+      </form>
+      <div className="staff-list">
+        {staff.map((user) => (
+          <article className="staff-row" key={user.id}>
+            <div>
+              <strong>{user.username}</strong>
+              <small>{user.is_superuser ? "Superuser" : user.role}</small>
+            </div>
+            <button
+              className="button text-button"
+              disabled={user.is_superuser}
+              onClick={() => void toggle(user)}
+            >
+              {user.is_active ? "Disable" : "Enable"}
+            </button>
+          </article>
+        ))}
+      </div>
+      <div className="audit-list">
+        <p className="result-label">Recent activity</p>
+        {logs.slice(0, 8).map((log) => (
+          <p key={log.id}>
+            <strong>{log.actor}</strong> · {log.action} · {log.target_type}{" "}
+            {log.target_id}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function ExamManagement() {
-  const [authorized, setAuthorized] = useState(false); const [credentials, setCredentials] = useState({ username: '', password: '' }); const [exams, setExams] = useState<ManagedExam[]>([]); const [error, setError] = useState('')
-  useEffect(() => { void load() }, [])
-  async function load() { const response = await adminRequest('/exams/admin-session/me/'); if (!response.ok) return; setAuthorized(true); const examResponse = await adminRequest('/exams/admin-management/exams/'); if (examResponse.ok) setExams(await examResponse.json() as ManagedExam[]) }
-  async function login(event: FormEvent) { event.preventDefault(); const response = await adminRequest('/exams/admin-session/login/', { method: 'POST', body: JSON.stringify(credentials) }); if (!response.ok) { const body = await readResponse(response); setError(String(body.message || 'Login failed.')); return } void load() }
-  async function duplicate(examId: number) { const response = await adminRequest('/exams/admin-management/exams/', { method: 'POST', body: JSON.stringify({ exam_id: examId }) }); const body = await readResponse(response); if (!response.ok) { setError(String(body.message || 'Could not duplicate exam.')); return } void load() }
-  async function changeStatus(exam: ManagedExam, status: string) { const response = await adminRequest(`/exams/admin-generator/exams/${exam.id}/status/`, { method: 'POST', body: JSON.stringify({ status }) }); const body = await readResponse(response); if (!response.ok) { setError(String(body.message || 'Could not update status.')); return } void load() }
-  if (!authorized) return <div className="page form-page"><div className="form-heading"><p className="eyebrow">Exam management</p><h1>Manage exams.</h1></div><form className="teacher-login-form" onSubmit={login}><Field label="Username" value={credentials.username} onChange={value => setCredentials({ ...credentials, username: value })} required /><Field label="Password" type="password" value={credentials.password} onChange={value => setCredentials({ ...credentials, password: value })} required />{error && <p className="form-error">{error}</p>}<button className="button primary">Sign in</button></form></div>
-  return <div className="page teacher-page exam-management-page"><div className="teacher-heading"><div><p className="eyebrow">Exam management</p><h1>Manage exams.</h1><p className="form-intro">Drafts can be edited. Exams with student attempts are locked.</p></div><a className="button primary" href="/admin-generator">Generate exam</a></div>{error && <p className="form-error">{error}</p>}<div className="managed-exams">{exams.map(exam => <article className="managed-exam" key={exam.id}><div><p className="result-label">{exam.status} · {exam.level || 'No level'}</p><h2>{exam.name}</h2><p>{exam.question_count} questions · {exam.max_score} points {exam.has_attempts ? '· locked' : ''}</p></div><div className="managed-exam-actions"><button className="button text-button" onClick={() => void duplicate(exam.id)}>Duplicate</button>{!exam.has_attempts && exam.status === 'draft' && <button className="button primary" onClick={() => void changeStatus(exam, 'open')}>Open</button>}{!exam.has_attempts && exam.status === 'open' && <button className="button text-button" onClick={() => void changeStatus(exam, 'closed')}>Close</button>}</div></article>)}</div></div>
+  const [authorized, setAuthorized] = useState(false);
+  const [credentials, setCredentials] = useState({
+    username: "",
+    password: "",
+  });
+  const [exams, setExams] = useState<ManagedExam[]>([]);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    void load();
+  }, []);
+  async function load() {
+    const response = await adminRequest("/exams/admin-session/me/");
+    if (!response.ok) return;
+    setAuthorized(true);
+    const examResponse = await adminRequest("/exams/admin-management/exams/");
+    if (examResponse.ok) setExams((await examResponse.json()) as ManagedExam[]);
+  }
+  async function login(event: FormEvent) {
+    event.preventDefault();
+    const response = await adminRequest("/exams/admin-session/login/", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+    if (!response.ok) {
+      const body = await readResponse(response);
+      setError(String(body.message || "Login failed."));
+      return;
+    }
+    void load();
+  }
+  async function duplicate(examId: number) {
+    const response = await adminRequest("/exams/admin-management/exams/", {
+      method: "POST",
+      body: JSON.stringify({ exam_id: examId }),
+    });
+    const body = await readResponse(response);
+    if (!response.ok) {
+      setError(String(body.message || "Could not duplicate exam."));
+      return;
+    }
+    void load();
+  }
+  async function changeStatus(exam: ManagedExam, status: string) {
+    const response = await adminRequest(
+      `/exams/admin-generator/exams/${exam.id}/status/`,
+      { method: "POST", body: JSON.stringify({ status }) },
+    );
+    const body = await readResponse(response);
+    if (!response.ok) {
+      setError(String(body.message || "Could not update status."));
+      return;
+    }
+    void load();
+  }
+  if (!authorized)
+    return (
+      <div className="page form-page">
+        <div className="form-heading">
+          <p className="eyebrow">Exam management</p>
+          <h1>Manage exams.</h1>
+        </div>
+        <form className="teacher-login-form" onSubmit={login}>
+          <Field
+            label="Username"
+            value={credentials.username}
+            onChange={(value) =>
+              setCredentials({ ...credentials, username: value })
+            }
+            required
+          />
+          <Field
+            label="Password"
+            type="password"
+            value={credentials.password}
+            onChange={(value) =>
+              setCredentials({ ...credentials, password: value })
+            }
+            required
+          />
+          {error && <p className="form-error">{error}</p>}
+          <button className="button primary">Sign in</button>
+        </form>
+      </div>
+    );
+  return (
+    <div className="page teacher-page exam-management-page">
+      <div className="teacher-heading">
+        <div>
+          <p className="eyebrow">Exam management</p>
+          <h1>Manage exams.</h1>
+          <p className="form-intro">
+            Drafts can be edited. Exams with student attempts are locked.
+          </p>
+        </div>
+        <a className="button primary" href="/admin-generator">
+          Generate exam
+        </a>
+      </div>
+      {error && <p className="form-error">{error}</p>}
+      <div className="managed-exams">
+        {exams.map((exam) => (
+          <article className="managed-exam" key={exam.id}>
+            <div>
+              <p className="result-label">
+                {exam.status} · {exam.level || "No level"}
+              </p>
+              <h2>{exam.name}</h2>
+              <p>
+                {exam.question_count} questions · {exam.max_score} points{" "}
+                {exam.has_attempts ? "· locked" : ""}
+              </p>
+            </div>
+            <div className="managed-exam-actions">
+              <button
+                className="button text-button"
+                onClick={() => void duplicate(exam.id)}
+              >
+                Duplicate
+              </button>
+              {!exam.has_attempts && exam.status === "draft" && (
+                <button
+                  className="button primary"
+                  onClick={() => void changeStatus(exam, "open")}
+                >
+                  Open
+                </button>
+              )}
+              {!exam.has_attempts && exam.status === "open" && (
+                <button
+                  className="button text-button"
+                  onClick={() => void changeStatus(exam, "closed")}
+                >
+                  Close
+                </button>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function Footer({ t }: { t: Copy }) { return <footer><span>بيت العربية / 2026</span><p>{t.footer}</p><span>AR · RU</span></footer> }
-export default App
+function Footer({ t }: { t: Copy }) {
+  return (
+    <footer>
+      <span>بيت العربية / 2026</span>
+      <p>{t.footer}</p>
+      <span>AR · RU</span>
+    </footer>
+  );
+}
+export default App;
