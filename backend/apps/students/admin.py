@@ -1,9 +1,25 @@
-from django.contrib import admin
+from django import forms
+from django.contrib import admin, messages
+from django.contrib.admin.helpers import ActionForm
+from django.utils import timezone
 
+from apps.exams.models import Level
 from apps.results.models import Result
 from apps.teachers.models import TeacherAssessment, TeacherAssessmentConfig
 
 from .models import Student, StudentPromotion
+
+
+class StudentLevelAssignmentForm(ActionForm):
+    target_level = forms.ModelChoiceField(
+        queryset=Level.objects.none(),
+        label="Assign selected students to level",
+        required=True,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["target_level"].queryset = Level.objects.filter(is_active=True).order_by("order")
 
 
 @admin.register(Student)
@@ -20,6 +36,31 @@ class StudentAdmin(admin.ModelAdmin):
     list_filter = ("level", "preferred_language", "created_at")
     autocomplete_fields = ("level",)
     readonly_fields = ("student_code", "created_at", "updated_at")
+    action_form = StudentLevelAssignmentForm
+    actions = ("assign_selected_students_to_level",)
+
+    @admin.action(description="Assign selected students to the chosen level")
+    def assign_selected_students_to_level(self, request, queryset):
+        target_level_id = request.POST.get("target_level")
+        target_level = Level.objects.filter(pk=target_level_id, is_active=True).first()
+        if target_level is None:
+            self.message_user(
+                request,
+                "Choose an active level before assigning students.",
+                level=messages.ERROR,
+            )
+            return
+
+        student_ids = list(queryset.values_list("pk", flat=True))
+        updated_count = Student.objects.filter(pk__in=student_ids).update(
+            level=target_level,
+            updated_at=timezone.now(),
+        )
+        self.message_user(
+            request,
+            f"Assigned {updated_count} student(s) to {target_level.name}.",
+            level=messages.SUCCESS,
+        )
 
 
 @admin.register(StudentPromotion)

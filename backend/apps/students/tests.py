@@ -2,7 +2,8 @@ import datetime
 from decimal import Decimal
 from unittest import mock
 
-from django.test import TestCase, TransactionTestCase, skipUnlessDBFeature
+from django.contrib.auth import get_user_model
+from django.test import Client, TestCase, TransactionTestCase, skipUnlessDBFeature
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -11,6 +12,59 @@ from apps.exams.models import Exam, Level
 from apps.students.models import Student, StudentPromotion
 from apps.students.promotions import assessment_promotion_status, promote_student_from_attempt
 from apps.teachers.models import TeacherAssessment, TeacherAssessmentConfig
+
+
+class StudentAdminBulkLevelAssignmentTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.current_level = Level.objects.create(name="Current level", order=1)
+        self.target_level = Level.objects.create(name="Next exam level", order=2)
+        self.inactive_level = Level.objects.create(name="Inactive level", order=3, is_active=False)
+        self.students = [
+            Student.objects.create(
+                full_name=f"Student {number}",
+                phone_number=f"100{number}",
+                address="Cairo",
+                passport_number=f"BULK-{number}",
+                level=self.current_level,
+            )
+            for number in range(2)
+        ]
+        self.admin_user = get_user_model().objects.create_superuser(
+            username="admin", email="admin@example.com", password="secret"
+        )
+        self.client.force_login(self.admin_user)
+
+    def test_admin_can_assign_selected_roster_to_level(self):
+        response = self.client.post(
+            "/admin/students/student/",
+            {
+                "action": "assign_selected_students_to_level",
+                "target_level": str(self.target_level.id),
+                "select_across": "0",
+                "_selected_action": [student.id for student in self.students],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            list(Student.objects.order_by("id").values_list("level_id", flat=True)),
+            [self.target_level.id, self.target_level.id],
+        )
+
+    def test_admin_bulk_assignment_rejects_inactive_level(self):
+        response = self.client.post(
+            "/admin/students/student/",
+            {
+                "action": "assign_selected_students_to_level",
+                "target_level": str(self.inactive_level.id),
+                "select_across": "0",
+                "_selected_action": [student.id for student in self.students],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Student.objects.filter(level=self.current_level).count(), 2)
 
 
 class StudentRegistrationApiTests(TestCase):
