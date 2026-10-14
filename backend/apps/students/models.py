@@ -42,6 +42,13 @@ class Student(models.Model):
         return f"{self.student_code} - {self.full_name}"
 
 
+class StudentPromotionRoster(Student):
+    class Meta:
+        proxy = True
+        verbose_name = "Student promotion roster"
+        verbose_name_plural = "Student promotion roster"
+
+
 class StudentPromotion(models.Model):
     student = models.ForeignKey("students.Student", on_delete=models.PROTECT, related_name="promotions")
     source_attempt = models.OneToOneField(

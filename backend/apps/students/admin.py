@@ -7,7 +7,7 @@ from apps.exams.models import Level
 from apps.results.models import Result
 from apps.teachers.models import TeacherAssessment, TeacherAssessmentConfig
 
-from .models import Student, StudentPromotion
+from .models import Student, StudentPromotion, StudentPromotionRoster
 
 
 class StudentLevelAssignmentForm(ActionForm):
@@ -61,6 +61,9 @@ class StudentAdmin(admin.ModelAdmin):
             f"Assigned {updated_count} student(s) to {target_level.name}.",
             level=messages.SUCCESS,
         )
+
+
+admin.site.register(StudentPromotionRoster, StudentAdmin)
 
 
 @admin.register(StudentPromotion)

@@ -37,7 +37,7 @@ class StudentAdminBulkLevelAssignmentTests(TestCase):
 
     def test_admin_can_assign_selected_roster_to_level(self):
         response = self.client.post(
-            "/admin/students/student/",
+            "/admin/students/studentpromotionroster/",
             {
                 "action": "assign_selected_students_to_level",
                 "target_level": str(self.target_level.id),
@@ -54,7 +54,7 @@ class StudentAdminBulkLevelAssignmentTests(TestCase):
 
     def test_admin_bulk_assignment_rejects_inactive_level(self):
         response = self.client.post(
-            "/admin/students/student/",
+            "/admin/students/studentpromotionroster/",
             {
                 "action": "assign_selected_students_to_level",
                 "target_level": str(self.inactive_level.id),
@@ -65,6 +65,25 @@ class StudentAdminBulkLevelAssignmentTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Student.objects.filter(level=self.current_level).count(), 2)
+
+    def test_admin_can_add_a_student_with_generated_code(self):
+        response = self.client.post(
+            "/admin/students/studentpromotionroster/add/",
+            {
+                "full_name": "New Student",
+                "phone_number": "123456",
+                "address": "Cairo",
+                "passport_number": "ADMIN-NEW-1",
+                "level": str(self.current_level.id),
+                "preferred_language": "ar",
+                "_save": "Save",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        added_student = Student.objects.get(passport_number="ADMIN-NEW-1")
+        self.assertRegex(added_student.student_code, r"^\d{8}$")
+        self.assertEqual(added_student.level, self.current_level)
 
 
 class StudentRegistrationApiTests(TestCase):
