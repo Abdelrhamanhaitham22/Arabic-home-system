@@ -1167,6 +1167,28 @@ function TeacherAssessments() {
     );
     if (response.ok) await load();
   }
+  async function removeAssessment() {
+    if (!selectedCode || !window.confirm("هل تريد حذف تقييم المعلم لهذا الطالب؟")) return;
+    const response = await teacherRequest(
+      `/teachers/assessments/${selectedCode}/`,
+      { method: "DELETE" },
+    );
+    const body = await readResponse(response);
+    setError(
+      response.ok
+        ? "تم حذف تقييم المعلم."
+        : String(body.detail || "تعذر حذف التقييم."),
+    );
+    if (response.ok) {
+      setScores({
+        written_score: "0",
+        activity_dictation_score: "0",
+        oral_score: "0",
+        teacher_notes: "",
+      });
+      await load();
+    }
+  }
   function select(student: TeacherStudent) {
     const assessment = session?.assessments.find(
       (item) =>
@@ -1388,7 +1410,14 @@ function TeacherAssessments() {
               {error}
             </p>
           )}
-          <button className="button primary">حفظ الدرجات</button>
+          <div className="teacher-submission-actions">
+            <button className="button primary">حفظ الدرجات</button>
+            {selectedAssessment && (
+              <button type="button" className="button text-button" onClick={removeAssessment}>
+                حذف تقييم المعلم
+              </button>
+            )}
+          </div>
         </form>
       )}
     </div>

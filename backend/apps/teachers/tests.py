@@ -65,3 +65,17 @@ class TeacherPortalTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    def test_teacher_can_delete_assessment(self):
+        TeacherAssessmentConfig.objects.create(level=self.level)
+        self.client.post("/api/teachers/login/", {"username": "teacher", "password": "secret"})
+        self.client.put(
+            f"/api/teachers/assessments/{self.student.student_code}/",
+            {"activity_dictation_score": "20", "oral_score": "20"},
+            format="json",
+        )
+
+        response = self.client.delete(f"/api/teachers/assessments/{self.student.student_code}/")
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(TeacherAssessment.objects.exists())

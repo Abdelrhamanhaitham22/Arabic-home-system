@@ -273,6 +273,35 @@ class TeacherAssessmentView(APIView):
             promote_student_from_attempt(latest_attempt.id)
         return Response(TeacherMeView.serialize_assessment(assessment))
 
+    def delete(self, request, student_code):
+        profile = teacher_profile_for(request)
+        if profile is None:
+            return Response({"detail": "Teacher access required."}, status=status.HTTP_403_FORBIDDEN)
+        student = get_object_or_404(Student.objects.select_related("level"), student_code=student_code.upper())
+        if not student.level_id or not profile.levels.filter(id=student.level_id).exists():
+            return Response({"detail": "You can only assess students in an assigned level."}, status=status.HTTP_403_FORBIDDEN)
+        assessment = TeacherAssessment.objects.filter(student=student, level_id=student.level_id).first()
+        if assessment is None:
+            return Response({"detail": "No teacher assessment exists for this student."}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.results.models import Result
+
+        exam_result = Result.objects.filter(student=student, exam__level_id=assessment.level_id).first()
+        assessment.delete()
+        if exam_result:
+            attempt = ExamAttempt.objects.filter(
+                student=student,
+                exam__level_id=assessment.level_id,
+                status="submitted",
+            ).order_by("-submitted_at", "-id").first()
+            if attempt:
+                exam_result.score = attempt.score
+                exam_result.max_score = attempt.max_score
+                exam_result.percentage = round((attempt.score / attempt.max_score) * 100, 2) if attempt.max_score else 0
+                exam_result.published = True
+                exam_result.save(update_fields=("score", "max_score", "percentage", "published", "updated_at"))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class TeacherAssessmentConfigView(APIView):
     def get(self, request):
