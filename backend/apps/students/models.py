@@ -40,3 +40,42 @@ class Student(models.Model):
 
     def __str__(self):
         return f"{self.student_code} - {self.full_name}"
+
+
+class StudentPromotion(models.Model):
+    student = models.ForeignKey("students.Student", on_delete=models.PROTECT, related_name="promotions")
+    source_attempt = models.OneToOneField(
+        "attempts.ExamAttempt",
+        on_delete=models.PROTECT,
+        related_name="student_promotion",
+    )
+    source_result = models.ForeignKey(
+        "results.Result",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="student_promotions",
+    )
+    from_level = models.ForeignKey(
+        "exams.Level",
+        on_delete=models.PROTECT,
+        related_name="student_promotions_from",
+    )
+    to_level = models.ForeignKey(
+        "exams.Level",
+        on_delete=models.PROTECT,
+        related_name="student_promotions_to",
+    )
+    written_score = models.DecimalField(max_digits=8, decimal_places=2)
+    activity_dictation_score = models.DecimalField(max_digits=8, decimal_places=2)
+    oral_score = models.DecimalField(max_digits=8, decimal_places=2)
+    total_score = models.DecimalField(max_digits=8, decimal_places=2)
+    total_max = models.DecimalField(max_digits=8, decimal_places=2)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    promoted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-promoted_at", "-id")
+
+    def __str__(self):
+        return f"{self.student.student_code}: {self.from_level} to {self.to_level}"

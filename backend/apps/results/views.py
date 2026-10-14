@@ -14,7 +14,7 @@ class ResultLookupView(APIView):
     def get(self, request, student_code):
         normalized_code = student_code.strip().upper()
         try:
-            student = Student.objects.get(student_code=normalized_code)
+            student = Student.objects.select_related("level").get(student_code=normalized_code)
         except Student.DoesNotExist:
             return Response(
                 {

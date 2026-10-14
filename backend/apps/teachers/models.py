@@ -37,6 +37,8 @@ class TeacherAssessment(models.Model):
     activity_dictation_score = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0"))
     oral_score = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("0"))
     teacher_notes = models.TextField(blank=True)
+    is_complete = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

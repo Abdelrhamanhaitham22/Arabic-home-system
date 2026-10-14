@@ -56,6 +56,7 @@ class ResultItemSerializer(serializers.ModelSerializer):
 class ResultLookupSerializer(serializers.Serializer):
     student_name = serializers.CharField(source="full_name")
     student_code = serializers.CharField()
+    current_level = serializers.CharField(source="level.name", allow_null=True)
     results = serializers.SerializerMethodField()
 
     def get_results(self, student):

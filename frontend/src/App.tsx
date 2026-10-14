@@ -11,6 +11,14 @@ import "./App.css";
 import logo from "./assets/bayt-al-arabia-logo.jpeg";
 
 type Language = "ar" | "ru";
+type AssessmentStatus =
+  | "incomplete"
+  | "awaiting_exam"
+  | "below_threshold"
+  | "promoted"
+  | "highest_level"
+  | "promotion_pending"
+  | "review_required";
 type ApiObject = Record<string, unknown>;
 type LevelOption = { id: number; name: string };
 type Result = {
@@ -31,6 +39,7 @@ type Result = {
 type ResultResponse = {
   student_name: string;
   student_code: string;
+  current_level: string | null;
   results: Result[];
   message?: string;
 };
@@ -39,6 +48,7 @@ type TeacherStudent = {
   full_name: string;
   level: string | null;
   level_id: number | null;
+  assessment_status: AssessmentStatus;
 };
 type TeacherAssessmentConfig = {
   level_id: number;
@@ -55,6 +65,9 @@ type TeacherAssessment = {
   oral_score: number;
   total_score: number;
   teacher_notes: string;
+  is_complete: boolean;
+  completed_at: string | null;
+  promotion_status: AssessmentStatus;
 };
 type TeacherResponse = {
   username: string;
@@ -213,6 +226,8 @@ const copy = {
     search: "عرض النتيجة",
     searching: "جارٍ البحث…",
     student: "الطالب",
+    currentLevel: "المستوى الحالي",
+    noLevel: "غير محدد",
     published: "نتائج منشورة",
     noResults: "لم تُنشر نتيجة بعد",
     noResultsBody: "ستظهر نتائجك هنا فور اعتمادها.",
@@ -280,6 +295,8 @@ const copy = {
     search: "Показать результат",
     searching: "Поиск…",
     student: "Студент",
+    currentLevel: "Текущий уровень",
+    noLevel: "Не назначен",
     published: "Опубликованные результаты",
     noResults: "Результатов пока нет",
     noResultsBody: "Результат появится здесь после публикации.",
@@ -306,6 +323,15 @@ const copy = {
     noExams: "Нет доступных экзаменов.",
   },
 } as const;
+const assessmentStatusLabels: Record<AssessmentStatus, string> = {
+  incomplete: "بانتظار استكمال التقييم",
+  awaiting_exam: "اكتملت درجات المعلم؛ بانتظار الاختبار التحريري",
+  below_threshold: "أقل من نسبة الترقية المطلوبة (50٪)",
+  promoted: "تمت الترقية إلى المستوى التالي",
+  highest_level: "وصل الطالب إلى أعلى مستوى نشط",
+  promotion_pending: "مستوفٍ للشروط؛ الترقية بانتظار المعالجة",
+  review_required: "يلزم مراجعة إعدادات الدرجات أو سجل الترقية",
+};
 type Copy = (typeof copy)[Language];
 
 function App() {
@@ -738,6 +764,10 @@ function Results({ t }: { t: Copy }) {
             <div>
               <p className="result-label">{t.student}</p>
               <h2>{state.response.student_name}</h2>
+              <p className="result-current-level">
+                <span>{t.currentLevel}</span>
+                <strong>{state.response.current_level || t.noLevel}</strong>
+              </p>
             </div>
             <span className="code-pill">{state.response.student_code}</span>
           </div>
@@ -1139,7 +1169,9 @@ function TeacherAssessments() {
   }
   function select(student: TeacherStudent) {
     const assessment = session?.assessments.find(
-      (item) => item.student_code === student.student_code,
+      (item) =>
+        item.student_code === student.student_code &&
+        item.level_id === student.level_id,
     );
     setSelectedCode(student.student_code);
     setScores({
@@ -1181,9 +1213,24 @@ function TeacherAssessments() {
         </form>
       </div>
     );
+  const currentAssessmentRecords = session.assessments;
   const student = session.students.find(
     (item) => item.student_code === selectedCode,
   );
+  const selectedAssessment = session.assessments.find(
+    (item) =>
+      item.student_code === selectedCode &&
+      item.level_id === (selectedLevelId ?? student?.level_id),
+  );
+  const assessmentStatus = selectedAssessment?.promotion_status ?? student?.assessment_status;
+  function statusForStudent(studentItem: TeacherStudent): AssessmentStatus {
+    const assessedStatus = currentAssessmentRecords.find(
+      (assessment) =>
+        assessment.student_code === studentItem.student_code &&
+        assessment.level_id === (selectedLevelId ?? studentItem.level_id),
+    )?.promotion_status;
+    return assessedStatus ?? studentItem.assessment_status;
+  }
   const config = student
     ? session.assessment_configs.find(
         (item) => item.level_id === student.level_id,
@@ -1192,7 +1239,15 @@ function TeacherAssessments() {
   const visibleStudents =
     selectedLevelId === null
       ? session.students
-      : session.students.filter((item) => item.level_id === selectedLevelId);
+      : session.students.filter(
+          (item) =>
+            item.level_id === selectedLevelId ||
+            session.assessments.some(
+              (assessment) =>
+                assessment.student_code === item.student_code &&
+                assessment.level_id === selectedLevelId,
+            ),
+        );
   return (
     <div className="page teacher-page">
       <div className="teacher-heading">
@@ -1243,26 +1298,42 @@ function TeacherAssessments() {
       <section className="teacher-students">
         <p className="result-label">الطلاب</p>
         <div className="teacher-student-list">
-          {visibleStudents.map((item) => (
-            <button
-              type="button"
-              className={
-                item.student_code === selectedCode
-                  ? "teacher-student selected"
-                  : "teacher-student"
-              }
-              key={item.student_code}
-              onClick={() => select(item)}
-            >
-              <strong>{item.full_name}</strong>
-              <span>
-                {item.student_code} · {item.level}
-              </span>
-            </button>
-          ))}
+          {visibleStudents.map((item) => {
+            const status = statusForStudent(item);
+            return (
+              <button
+                type="button"
+                className={
+                  item.student_code === selectedCode
+                    ? "teacher-student selected"
+                    : "teacher-student"
+                }
+                key={item.student_code}
+                onClick={() => select(item)}
+              >
+                <strong>{item.full_name}</strong>
+                <span>
+                  {item.student_code} · {item.level}
+                </span>
+                <small className={`teacher-status teacher-status-${status}`}>
+                  {assessmentStatusLabels[status]}
+                </small>
+              </button>
+            );
+          })}
         </div>
       </section>
-      {student && config && (
+      {student && assessmentStatus && (
+        <div
+          className={`assessment-status assessment-status-${assessmentStatus}`}
+          role="status"
+          aria-live="polite"
+        >
+          <span>حالة التقييم</span>
+          <strong>{assessmentStatusLabels[assessmentStatus]}</strong>
+        </div>
+      )}
+      {student && config && (!selectedLevelId || selectedLevelId === student.level_id) && (
         <form className="teacher-submission" onSubmit={save}>
           <div className="teacher-submission-head">
             <div>

@@ -1,0 +1,55 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - link "بيت العربية بيت العربية Arabic Language Center" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img "بيت العربية" [ref=e6]
+      - generic [ref=e7]:
+        - strong [ref=e8]: بيت العربية
+        - generic [ref=e9]: Arabic Language Center
+    - navigation "Main navigation" [ref=e10]:
+      - link "الرئيسية" [ref=e11] [cursor=pointer]:
+        - /url: /
+      - link "التسجيل" [ref=e12] [cursor=pointer]:
+        - /url: /register
+      - link "المعلم" [ref=e13] [cursor=pointer]:
+        - /url: /teacher
+      - link "النتائج" [ref=e14] [cursor=pointer]:
+        - /url: /results
+    - generic [ref=e15]:
+      - button "العربية" [ref=e16] [cursor=pointer]
+      - generic [ref=e17]: /
+      - button "Русский" [ref=e18] [cursor=pointer]
+  - main [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - img "بيت العربية - مركز اللغة العربية" [ref=e23]
+          - paragraph [ref=e24]: بيت العربية
+          - generic [ref=e25]: Arabic Language Center
+        - generic [ref=e26]:
+          - paragraph [ref=e27]: بوابتك إلى التعلّم
+          - heading [level=1] [ref=e29]:
+            - generic [ref=e30]: نتيجتك.
+            - generic [ref=e31]: خطوتك التالية.
+          - paragraph [ref=e32]: سجّل بياناتك مرة واحدة، واحتفظ برمزك الدائم للوصول إلى نتائج اختباراتك في أي وقت.
+          - generic [ref=e33]:
+            - link "ابدأ التسجيل ↗" [ref=e34] [cursor=pointer]:
+              - /url: /register
+              - text: ابدأ التسجيل
+              - generic [ref=e35]: ↗
+            - link "تحقق من نتيجتك →" [ref=e36] [cursor=pointer]:
+              - /url: /results
+              - text: تحقق من نتيجتك
+              - generic [ref=e37]: →
+      - paragraph [ref=e45]: خدمة بسيطة، واضحة، ومصممة لتكون معك في كل خطوة.
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - paragraph [ref=e50]: شاهد وتعلّم
+            - heading "شاهد وتعلّم" [level=2] [ref=e51]
+          - paragraph [ref=e52]: مقاطع مختارة تساعدك على الاقتراب من اللغة العربية كل يوم.
+        - generic [ref=e53]: ستظهر المقاطع التعليمية هنا قريباً.
+  - contentinfo [ref=e54]:
+    - generic [ref=e55]: بيت العربية / 2026
+    - paragraph [ref=e56]: نتعلم اليوم لنفتح أبواب الغد.
+    - generic [ref=e57]: AR · RU

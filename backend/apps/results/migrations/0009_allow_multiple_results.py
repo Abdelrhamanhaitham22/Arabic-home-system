@@ -7,8 +7,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql="ALTER TABLE results_result DROP CONSTRAINT IF EXISTS unique_result_per_student_exam;",
-            reverse_sql=migrations.RunSQL.noop,
+        migrations.RemoveConstraint(
+            model_name="result",
+            name="unique_result_per_student_exam",
         ),
     ]

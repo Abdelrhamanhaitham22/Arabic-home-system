@@ -1,0 +1,66 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - link "بيت العربية بيت العربية Arabic Language Center" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img "بيت العربية" [ref=e6]
+      - generic [ref=e7]:
+        - strong [ref=e8]: بيت العربية
+        - generic [ref=e9]: Arabic Language Center
+    - navigation "Main navigation" [ref=e10]:
+      - link "الرئيسية" [ref=e11] [cursor=pointer]:
+        - /url: /
+      - link "التسجيل" [ref=e12] [cursor=pointer]:
+        - /url: /register
+      - link "النتائج" [ref=e13] [cursor=pointer]:
+        - /url: /results
+    - generic "Language switcher" [ref=e14]:
+      - button "العربية" [ref=e15] [cursor=pointer]
+      - generic [ref=e16]: /
+      - button "Русский" [ref=e17] [cursor=pointer]
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - img "بيت العربية - مركز اللغة العربية" [ref=e22]
+          - paragraph [ref=e23]: بيت العربية
+          - generic [ref=e24]: Arabic Language Center
+        - generic [ref=e25]:
+          - paragraph [ref=e26]: بوابتك إلى التعلّم
+          - heading [level=1] [ref=e28]:
+            - generic [ref=e29]: نتيجتك.
+            - generic [ref=e30]: خطوتك التالية.
+          - paragraph [ref=e31]: سجّل بياناتك مرة واحدة، واحتفظ برمزك الدائم للوصول إلى نتائج اختباراتك في أي وقت.
+          - generic [ref=e32]:
+            - link "ابدأ التسجيل ↗" [ref=e33] [cursor=pointer]:
+              - /url: /register
+              - text: ابدأ التسجيل
+              - generic [ref=e34]: ↗
+            - link "تحقق من نتيجتك →" [ref=e35] [cursor=pointer]:
+              - /url: /results
+              - text: تحقق من نتيجتك
+              - generic [ref=e36]: →
+        - generic [aria-hidden] [ref=e37]:
+          - generic [ref=e42]: 01 learn
+          - generic [ref=e43]: result →
+      - paragraph [ref=e46]: خدمة بسيطة، واضحة، ومصممة لتكون معك في كل خطوة.
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - text: "01"
+          - heading "التسجيل" [level=2] [ref=e50]
+          - paragraph [ref=e51]: أدخل بياناتك كما تظهر في وثائقك. سنرسل لك رمزاً دائماً بعد التسجيل.
+          - link "ابدأ التسجيل ↗" [ref=e52] [cursor=pointer]:
+            - /url: /register
+            - text: ابدأ التسجيل
+            - generic [ref=e53]: ↗
+        - generic [ref=e54]:
+          - text: "02"
+          - heading "النتائج" [level=2] [ref=e55]
+          - paragraph [ref=e56]: أدخل رمزك الطلابي لرؤية نتائج الاختبارات المنشورة ومتابعة تقدمك.
+          - link "تحقق من نتيجتك ↗" [ref=e57] [cursor=pointer]:
+            - /url: /results
+            - text: تحقق من نتيجتك
+            - generic [ref=e58]: ↗
+  - contentinfo [ref=e59]:
+    - generic [ref=e60]: بيت العربية / 2026
+    - paragraph [ref=e61]: نتعلم اليوم لنفتح أبواب الغد.
+    - generic [ref=e62]: AR · RU

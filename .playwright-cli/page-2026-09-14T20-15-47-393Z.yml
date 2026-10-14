@@ -1,0 +1,38 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - link "بيت العربية بيت العربية Arabic Language Center" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img "بيت العربية" [ref=e6]
+      - generic [ref=e7]:
+        - strong [ref=e8]: بيت العربية
+        - generic [ref=e9]: Arabic Language Center
+    - navigation "Main navigation" [ref=e10]:
+      - link "الرئيسية" [ref=e11] [cursor=pointer]:
+        - /url: /
+      - link "التسجيل" [ref=e12] [cursor=pointer]:
+        - /url: /register
+      - link "الاختبارات" [ref=e13] [cursor=pointer]:
+        - /url: /exams
+      - link "النتائج" [ref=e14] [cursor=pointer]:
+        - /url: /results
+    - generic "Language switcher" [ref=e15]:
+      - button "العربية" [ref=e16] [cursor=pointer]
+      - generic [ref=e17]: /
+      - button "Русский" [ref=e18] [cursor=pointer]
+  - main [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - paragraph [ref=e22]: الاختبارات
+        - heading "اختباراتك المتاحة" [level=1] [ref=e24]
+        - paragraph [ref=e25]: أدخل رمز الطالب لرؤية الاختبارات المفتوحة لمستواك، ثم ارفع ملف إجابتك للمراجعة.
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: رمز الطالب*
+          - textbox "رمز الطالب" [ref=e29]
+        - button "عرض اختباراتي →" [ref=e30] [cursor=pointer]:
+          - text: عرض اختباراتي
+          - generic [ref=e31]: →
+  - contentinfo [ref=e32]:
+    - generic [ref=e33]: بيت العربية / 2026
+    - paragraph [ref=e34]: نتعلم اليوم لنفتح أبواب الغد.
+    - generic [ref=e35]: AR · RU

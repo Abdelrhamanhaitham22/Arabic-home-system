@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from apps.exams.models import Exam
 from apps.students.models import Student
+from apps.students.promotions import promote_student_from_attempt
 from .models import AttemptQuestion, ExamAttempt, StudentAnswer
 from .serializers import ExamAttemptSerializer
 
@@ -202,17 +203,22 @@ class SubmitAttemptView(APIView):
         from apps.results.models import Result
         from apps.teachers.models import TeacherAssessment, TeacherAssessmentConfig
 
-        assessment, _ = TeacherAssessment.objects.get_or_create(
-            student=attempt.student,
-            level=attempt.student.level,
-        )
-        assessment.written_score = score
-        assessment.save(update_fields=("written_score", "updated_at"))
-        assessment_config, _ = TeacherAssessmentConfig.objects.get_or_create(level=attempt.student.level)
-        total_score = assessment.total_score
-        total_max = assessment_config.total_max
+        if attempt.exam.level_id:
+            assessment, _ = TeacherAssessment.objects.get_or_create(
+                student=attempt.student,
+                level_id=attempt.exam.level_id,
+            )
+            assessment.written_score = score
+            assessment.save(update_fields=("written_score", "updated_at"))
+            assessment_config, _ = TeacherAssessmentConfig.objects.get_or_create(level_id=attempt.exam.level_id)
+            total_score = assessment.total_score
+            total_max = assessment_config.total_max
+        else:
+            total_score = score
+            total_max = attempt.max_score
         Result.objects.update_or_create(
             attempt=attempt,
             defaults={"student": attempt.student, "exam": attempt.exam, "score": total_score, "max_score": total_max, "percentage": round((total_score / total_max) * 100, 2) if total_max else 0, "submission_status": "submitted", "published": True},
         )
+        promote_student_from_attempt(attempt.id)
         return attempt_response(attempt)
