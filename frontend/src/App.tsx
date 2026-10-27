@@ -1124,6 +1124,7 @@ function Exams({ t }: { t: Copy }) {
 
 function TeacherAssessments() {
   const [session, setSession] = useState<TeacherResponse | null>(null);
+  const [showSignup, setShowSignup] = useState(false);
   const [credentials, setCredentials] = useState({
     username: "",
     password: "",
@@ -1150,8 +1151,32 @@ function TeacherAssessments() {
       method: "POST",
       body: JSON.stringify(credentials),
     });
-    if (response.ok) void load();
-    else setError("تعذر تسجيل الدخول.");
+    if (response.ok) {
+      setError("");
+      void load();
+    } else {
+      const body = await readResponse(response);
+      setError(response.status === 403
+        ? "حسابك بانتظار موافقة الإدارة وتحديد المستوى."
+        : String(body.detail || "تعذر تسجيل الدخول."));
+    }
+  }
+  async function signup(event: FormEvent) {
+    event.preventDefault();
+    const response = await teacherRequest("/teachers/signup/", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+    const body = await readResponse(response);
+    if (response.ok) {
+      setCredentials({ username: "", password: "" });
+      setShowSignup(false);
+      setError("تم إنشاء الحساب. انتظر موافقة الإدارة وتحديد مستواك قبل تسجيل الدخول.");
+    } else {
+      setError(Array.isArray(body.detail)
+        ? body.detail.join(" ")
+        : String(body.detail || "تعذر إنشاء الحساب."));
+    }
   }
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -1212,7 +1237,7 @@ function TeacherAssessments() {
           <p className="eyebrow">{copy.ar.teacher}</p>
           <h1>بوابة المعلم.</h1>
         </div>
-        <form className="teacher-login-form" onSubmit={login}>
+        <form className="teacher-login-form" onSubmit={showSignup ? signup : login}>
           <Field
             label="اسم المستخدم"
             value={credentials.username}
@@ -1231,7 +1256,13 @@ function TeacherAssessments() {
             required
           />
           {error && <p className="form-error">{error}</p>}
-          <button className="button primary">تسجيل الدخول</button>
+          <button className="button primary">{showSignup ? "إنشاء حساب معلم" : "تسجيل الدخول"}</button>
+          <button type="button" className="button" onClick={() => {
+            setShowSignup(!showSignup);
+            setError("");
+          }}>
+            {showSignup ? "لديك حساب؟ تسجيل الدخول" : "معلم جديد؟ إنشاء حساب"}
+          </button>
         </form>
       </div>
     );

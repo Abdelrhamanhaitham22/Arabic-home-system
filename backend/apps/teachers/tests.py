@@ -29,6 +29,44 @@ class TeacherPortalTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_signup_requires_admin_approval_and_assigned_level(self):
+        response = self.client.post(
+            "/api/teachers/signup/",
+            {"username": "new teacher", "password": "A-strong-password-123"},
+        )
+        self.assertEqual(response.status_code, 201)
+        profile = TeacherProfile.objects.get(user__username="new teacher")
+        self.assertFalse(profile.is_approved)
+        self.assertEqual(self.client.post(
+            "/api/teachers/login/",
+            {"username": "new teacher", "password": "A-strong-password-123"},
+        ).status_code, 403)
+
+        profile.is_approved = True
+        profile.save(update_fields=["is_approved"])
+        self.assertEqual(self.client.post(
+            "/api/teachers/login/",
+            {"username": "new teacher", "password": "A-strong-password-123"},
+        ).status_code, 403)
+        profile.levels.add(self.level)
+        self.assertEqual(self.client.post(
+            "/api/teachers/login/",
+            {"username": "new teacher", "password": "A-strong-password-123"},
+        ).status_code, 200)
+        portal = self.client.get("/api/teachers/me/")
+        self.assertEqual([student["student_code"] for student in portal.data["students"]], [self.student.student_code])
+
+    def test_revoked_approval_blocks_existing_session(self):
+        self.client.post("/api/teachers/login/", {"username": "teacher", "password": "secret"})
+        self.profile.is_approved = False
+        self.profile.save(update_fields=["is_approved"])
+
+        self.assertEqual(self.client.get("/api/teachers/me/").status_code, 403)
+        self.assertEqual(self.client.put(
+            f"/api/teachers/assessments/{self.student.student_code}/",
+            {"activity_dictation_score": "10", "oral_score": "10"},
+        ).status_code, 403)
+
     def test_teacher_portal_no_longer_exposes_pdf_submissions(self):
         self.client.post("/api/teachers/login/", {"username": "teacher", "password": "secret"})
 

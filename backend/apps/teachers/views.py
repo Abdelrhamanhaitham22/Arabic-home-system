@@ -100,6 +100,11 @@ class TeacherLoginView(APIView):
                 {"detail": "Your account is waiting for administrator approval."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        if not profile.levels.exists():
+            return Response(
+                {"detail": "Your account is waiting for an assigned level."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         login(request, user)
         return Response({"username": user.get_username(), "levels": list(profile.levels.values_list("name", flat=True))})
 
@@ -119,7 +124,7 @@ class TeacherMeView(APIView):
 
     def get(self, request):
         profile = teacher_profile_for(request)
-        if profile is None:
+        if profile is None or not profile.is_approved:
             return Response({"detail": "Teacher access required."}, status=status.HTTP_403_FORBIDDEN)
         assigned_levels = self.assigned_levels_for(profile, request.query_params.get("level_id"))
         if isinstance(assigned_levels, Response):
@@ -222,7 +227,7 @@ class TeacherAssessmentView(APIView):
 
     def put(self, request, student_code):
         profile = teacher_profile_for(request)
-        if profile is None:
+        if profile is None or not profile.is_approved:
             return Response({"detail": "Teacher access required."}, status=status.HTTP_403_FORBIDDEN)
         student = get_object_or_404(Student.objects.select_related("level"), student_code=student_code.upper())
         if not student.level_id or not profile.levels.filter(id=student.level_id).exists():
@@ -275,7 +280,7 @@ class TeacherAssessmentView(APIView):
 
     def delete(self, request, student_code):
         profile = teacher_profile_for(request)
-        if profile is None:
+        if profile is None or not profile.is_approved:
             return Response({"detail": "Teacher access required."}, status=status.HTTP_403_FORBIDDEN)
         student = get_object_or_404(Student.objects.select_related("level"), student_code=student_code.upper())
         if not student.level_id or not profile.levels.filter(id=student.level_id).exists():
