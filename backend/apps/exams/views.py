@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.students.models import Student
+from apps.attempts.views import fresh_attempt_questions
 from .generator import create_exam, preview_exam_questions, update_exam
 from .models import Exam, Level, QuestionSource
 from apps.core.services import has_staff_role, record_audit, staff_role
@@ -43,9 +44,12 @@ class AvailableExamListView(APIView):
     @staticmethod
     def exam_generation_errors(exam):
         try:
-            exam.validate_generation()
-        except ValidationError as error:
-            return error.messages
+            selected = list(exam.selected_questions.select_related("question").order_by("display_order"))
+            if len(selected) != exam.question_count:
+                selected = []
+            fresh_attempt_questions(exam, selected)
+        except ValueError as error:
+            return [str(error)]
         return []
 
 
@@ -69,13 +73,9 @@ class AvailableExamDetailView(APIView):
                 models.Q(closes_at__isnull=True) | models.Q(closes_at__gte=current_time),
             ).select_related("level").prefetch_related("source_allocations__source__questions__choices")
         )
-        try:
-            exam.validate_generation()
-        except ValidationError:
-            return Response(
-                {"error": "question_bank_incomplete", "message": "This exam is not ready yet."},
-                status=status.HTTP_409_CONFLICT,
-            )
+        errors = AvailableExamListView.exam_generation_errors(exam)
+        if errors:
+            return Response({"error": "question_bank_incomplete", "message": errors[0]}, status=409)
         return Response(AvailableExamDetailSerializer(exam).data)
 
 

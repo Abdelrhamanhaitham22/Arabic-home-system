@@ -61,10 +61,13 @@ def fresh_attempt_questions(exam, selected_exam_questions):
     selected = []
     selected_ids = set()
     for (source_id, question_type), count in required_groups.items():
-        pool = exam.level.question_bank.filter(is_active=True, question_type=question_type)
+        level_pool = exam.level.question_bank.filter(is_active=True, question_type=question_type)
+        pool = level_pool
         if source_id is not None:
             pool = pool.filter(source_id=source_id)
-        available = list(pool.exclude(id__in=selected_ids).prefetch_related("choices"))
+        available = valid_questions(pool, selected_ids)
+        if len(available) < count and source_id is not None:
+            available = valid_questions(level_pool, selected_ids)
         if len(available) < count:
             raise ValueError("The question bank does not contain enough questions for a new attempt.")
         random.shuffle(available)
@@ -73,6 +76,14 @@ def fresh_attempt_questions(exam, selected_exam_questions):
         selected.extend(chosen)
         selected_ids.update(question.id for question in chosen)
     return selected
+
+
+def valid_questions(pool, excluded_ids):
+    return [
+        question for question in pool.exclude(id__in=excluded_ids).prefetch_related("choices")
+        if len(question.choices.all()) >= 2
+        and sum(choice.is_correct for choice in question.choices.all()) == 1
+    ]
 
 
 def answer_values(question, answer_payload):
@@ -105,9 +116,6 @@ class StartExamView(APIView):
             return Response({"error": "exam_not_available", "message": "This exam is not assigned to your level."}, status=404)
         if not exam.is_submission_open:
             return Response({"error": "exam_closed", "message": "This exam is not open."}, status=409)
-        if exam.level.question_bank_errors():
-            return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
-
         with transaction.atomic():
             Student.objects.select_for_update().get(pk=student.pk)
             return self.start_for_student(student, exam)
@@ -126,8 +134,8 @@ class StartExamView(APIView):
 
         try:
             selected_exam_questions = list(exam.selected_questions.select_related("question").order_by("display_order"))
-            if selected_exam_questions and len(selected_exam_questions) != exam.question_count:
-                return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
+            if len(selected_exam_questions) != exam.question_count:
+                selected_exam_questions = []
             selected = fresh_attempt_questions(exam, selected_exam_questions)
         except ValueError as error:
             return Response({"error": "question_bank_incomplete", "message": str(error)}, status=409)

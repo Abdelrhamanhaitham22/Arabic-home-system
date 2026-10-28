@@ -16,7 +16,7 @@ from docx import Document
 from apps.students.models import Student
 
 from .generator import create_exam
-from .models import Exam, ExamQuestion, Level, Question, QuestionChoice, QuestionSource, Subject
+from .models import Exam, ExamQuestion, ExamSourceAllocation, Level, Question, QuestionChoice, QuestionSource, Subject
 from .importers import import_question_bank
 from .word_importers import import_question_banks_from_word
 
@@ -427,6 +427,23 @@ class AvailableExamApiTests(TestCase):
         self.assertEqual(response.data[0]["name"], "Level 6 Online Exam")
         self.assertNotIn("exam_file_url", response.data[0])
 
+    def test_stale_source_allocation_does_not_block_valid_level_questions(self):
+        subject = Subject.objects.create(level=self.level, name="Old source")
+        source = QuestionSource.objects.create(
+            level=self.level, subject=subject, file="old.docx", original_filename="old.docx"
+        )
+        ExamSourceAllocation.objects.create(exam=self.exam, source=source, question_count=50)
+
+        list_response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
+        detail_response = self.client.get(f"/api/exams/{self.exam.id}/?student_code={self.student.student_code}")
+        start_response = self.client.post(
+            f"/api/exams/{self.exam.id}/start/", {"student_code": self.student.student_code}
+        )
+
+        self.assertEqual(len(list_response.data), 1)
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertEqual(start_response.status_code, 200)
+
     def test_legacy_file_route_is_removed(self):
         self.assertEqual(
             self.client.get(f"/api/exams/{self.exam.id}/file/?student_code={self.student.student_code}").status_code,
@@ -441,7 +458,7 @@ class AvailableExamApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["time_limit_minutes"], 45)
         self.assertNotIn("sections", response.data)
-        self.assertEqual(response.data["max_score"], 100)
+        self.assertEqual(response.data["max_score"], "100.00")
         self.assertNotIn("questions", response.data)
 
     def test_exam_detail_rejects_student_from_another_level(self):

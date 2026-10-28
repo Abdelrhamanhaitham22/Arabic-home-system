@@ -46,6 +46,26 @@ class AttemptApiTests(TestCase):
         self.assertTrue(all(q["correct_answer"] is None for q in questions))
         self.assertTrue(all("is_correct" not in choice for q in questions for choice in q["choices"]))
 
+    def test_exam_starts_with_fifty_valid_questions_in_level_bank(self):
+        self.level.question_bank.exclude(bank_order__lte=25).exclude(bank_order__range=(101, 125)).update(is_active=False)
+
+        response = self.start()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["questions"]), 50)
+
+    def test_incomplete_saved_selection_uses_level_bank(self):
+        selected = list(self.level.question_bank.order_by("id")[:49])
+        ExamQuestion.objects.bulk_create([
+            ExamQuestion(exam=self.exam, question=question, display_order=order)
+            for order, question in enumerate(selected, start=1)
+        ])
+
+        response = self.start()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["questions"]), 50)
+
     def test_refresh_returns_same_attempt_and_question_set(self):
         first = self.start()
         second = self.start()
