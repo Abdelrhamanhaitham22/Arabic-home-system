@@ -26,10 +26,10 @@ class AttemptApiTests(TestCase):
             QuestionChoice.objects.create(question=question, text="Correct", order=1, is_correct=True)
             QuestionChoice.objects.create(question=question, text="Wrong", order=2)
         self.student = Student.objects.create(
-            full_name="Student One", phone_number="123", address="Cairo", passport_number="PASS-1", level=self.level,
+            full_name="Student One", phone_number="123", address="Cairo", passport_number="PASS-1", level=self.level, assigned_exam=self.exam,
         )
         self.other_student = Student.objects.create(
-            full_name="Student Two", phone_number="456", address="Cairo", passport_number="PASS-2", level=self.level,
+            full_name="Student Two", phone_number="456", address="Cairo", passport_number="PASS-2", level=self.level, assigned_exam=self.exam,
         )
 
     def start(self, student=None):

@@ -66,6 +66,24 @@ class StudentAdminBulkLevelAssignmentTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Student.objects.filter(level=self.current_level).count(), 2)
 
+    def test_admin_assigns_selected_students_to_one_exam(self):
+        exam = Exam.objects.create(
+            level=self.current_level, name="Assigned exam", max_score=50,
+            exam_date=datetime.date(2026, 10, 28), status="open",
+        )
+        response = self.client.post(
+            "/admin/students/studentpromotionroster/",
+            {
+                "action": "assign_selected_students_to_exam",
+                "target_exam": str(exam.id),
+                "select_across": "0",
+                "_selected_action": [student.id for student in self.students],
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Student.objects.filter(assigned_exam=exam).count(), 2)
+
     def test_admin_can_add_a_student_with_generated_code(self):
         response = self.client.post(
             "/admin/students/studentpromotionroster/add/",

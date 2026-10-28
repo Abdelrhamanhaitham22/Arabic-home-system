@@ -3,7 +3,7 @@ from django.contrib import admin, messages
 from django.contrib.admin.helpers import ActionForm
 from django.utils import timezone
 
-from apps.exams.models import Level
+from apps.exams.models import Exam, Level
 from apps.results.models import Result
 from apps.teachers.models import TeacherAssessment, TeacherAssessmentConfig
 
@@ -14,12 +14,18 @@ class StudentLevelAssignmentForm(ActionForm):
     target_level = forms.ModelChoiceField(
         queryset=Level.objects.none(),
         label="Assign selected students to level",
-        required=True,
+        required=False,
+    )
+    target_exam = forms.ModelChoiceField(
+        queryset=Exam.objects.none(),
+        label="Assign selected students to exam",
+        required=False,
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["target_level"].queryset = Level.objects.filter(is_active=True).order_by("order")
+        self.fields["target_exam"].queryset = Exam.objects.filter(status="open").order_by("name")
 
 
 @admin.register(Student)
@@ -28,16 +34,17 @@ class StudentAdmin(admin.ModelAdmin):
         "student_code",
         "full_name",
         "level",
+        "assigned_exam",
         "phone_number",
         "preferred_language",
         "created_at",
     )
     search_fields = ("student_code", "full_name", "phone_number")
-    list_filter = ("level", "preferred_language", "created_at")
-    autocomplete_fields = ("level",)
+    list_filter = ("level", "assigned_exam", "preferred_language", "created_at")
+    autocomplete_fields = ("level", "assigned_exam")
     readonly_fields = ("student_code", "created_at", "updated_at")
     action_form = StudentLevelAssignmentForm
-    actions = ("assign_selected_students_to_level",)
+    actions = ("assign_selected_students_to_level", "assign_selected_students_to_exam")
 
     @admin.action(description="Assign selected students to the chosen level")
     def assign_selected_students_to_level(self, request, queryset):
@@ -61,6 +68,18 @@ class StudentAdmin(admin.ModelAdmin):
             f"Assigned {updated_count} student(s) to {target_level.name}.",
             level=messages.SUCCESS,
         )
+
+    @admin.action(description="Assign selected students to the chosen exam")
+    def assign_selected_students_to_exam(self, request, queryset):
+        exam = Exam.objects.filter(pk=request.POST.get("target_exam"), status="open").first()
+        if exam is None:
+            self.message_user(request, "Choose an open exam before assigning students.", level=messages.ERROR)
+            return
+        if queryset.exclude(level_id=exam.level_id).exists():
+            self.message_user(request, "All selected students must be in the exam level.", level=messages.ERROR)
+            return
+        updated_count = queryset.update(assigned_exam=exam, updated_at=timezone.now())
+        self.message_user(request, f"Assigned {updated_count} student(s) to {exam.name}.", level=messages.SUCCESS)
 
 
 admin.site.register(StudentPromotionRoster, StudentAdmin)

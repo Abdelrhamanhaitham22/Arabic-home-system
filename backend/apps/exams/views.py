@@ -34,7 +34,7 @@ class AvailableExamListView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
         current_time = timezone.now()
-        exams = Exam.objects.filter(status="open", level_id=student.level_id).filter(
+        exams = Exam.objects.filter(status="open", level_id=student.level_id, id=student.assigned_exam_id).filter(
             models.Q(opens_at__isnull=True) | models.Q(opens_at__lte=current_time),
             models.Q(closes_at__isnull=True) | models.Q(closes_at__gte=current_time),
         ).select_related("level").prefetch_related("source_allocations__source__questions__choices")
@@ -68,6 +68,7 @@ class AvailableExamDetailView(APIView):
                 id=exam_id,
                 status="open",
                 level_id=student.level_id,
+                assigned_students=student,
             ).filter(
                 models.Q(opens_at__isnull=True) | models.Q(opens_at__lte=current_time),
                 models.Q(closes_at__isnull=True) | models.Q(closes_at__gte=current_time),

@@ -418,6 +418,7 @@ class AvailableExamApiTests(TestCase):
             address="Alexandria, Egypt",
             passport_number="P1234567",
             level=self.level,
+            assigned_exam=self.exam,
         )
 
     def test_open_exam_is_listed_without_legacy_file_url(self):
@@ -426,6 +427,36 @@ class AvailableExamApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]["name"], "Level 6 Online Exam")
         self.assertNotIn("exam_file_url", response.data[0])
+
+    def test_student_sees_only_assigned_exam_even_after_level_change(self):
+        other_exam = Exam.objects.create(
+            level=self.level, name="Second exam", max_score=100,
+            exam_date=datetime.date(2026, 10, 1), status="open",
+        )
+        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
+        self.assertEqual([exam["id"] for exam in response.data], [self.exam.id])
+        self.assertEqual(
+            self.client.get(f"/api/exams/{other_exam.id}/?student_code={self.student.student_code}").status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.post(f"/api/exams/{other_exam.id}/start/", {"student_code": self.student.student_code}).status_code,
+            404,
+        )
+
+        next_level = Level.objects.create(name="Level 7", order=7)
+        next_exam = Exam.objects.create(
+            level=next_level, name="Next level exam", max_score=100,
+            exam_date=datetime.date(2026, 10, 2), status="open",
+        )
+        self.student.level = next_level
+        self.student.save(update_fields=("level",))
+        response = self.client.get(f"/api/exams/?student_code={self.student.student_code}")
+        self.assertEqual(response.data, [])
+        self.assertEqual(
+            self.client.post(f"/api/exams/{next_exam.id}/start/", {"student_code": self.student.student_code}).status_code,
+            404,
+        )
 
     def test_stale_source_allocation_does_not_block_valid_level_questions(self):
         subject = Subject.objects.create(level=self.level, name="Old source")

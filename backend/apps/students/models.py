@@ -25,6 +25,13 @@ class Student(models.Model):
         blank=True,
         related_name="students",
     )
+    assigned_exam = models.ForeignKey(
+        "exams.Exam",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_students",
+    )
     preferred_language = models.CharField(
         max_length=5,
         choices=LANGUAGE_CHOICES,

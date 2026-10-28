@@ -112,7 +112,7 @@ class StartExamView(APIView):
             return Response({"error": "invalid_student_code", "message": "Enter a valid student code."}, status=400)
         student = get_object_or_404(Student.objects.select_related("level"), student_code=code)
         exam = get_object_or_404(Exam.objects.select_related("level"), id=exam_id)
-        if exam.level_id != student.level_id:
+        if exam.level_id != student.level_id or student.assigned_exam_id != exam.id:
             return Response({"error": "exam_not_available", "message": "This exam is not assigned to your level."}, status=404)
         if not exam.is_submission_open:
             return Response({"error": "exam_closed", "message": "This exam is not open."}, status=409)
