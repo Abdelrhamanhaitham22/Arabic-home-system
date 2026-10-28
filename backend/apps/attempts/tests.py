@@ -1,6 +1,5 @@
 import datetime
-from unittest.mock import patch
-
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -53,39 +52,49 @@ class AttemptApiTests(TestCase):
         self.assertEqual(first.data["id"], second.data["id"])
         self.assertEqual([q["id"] for q in first.data["questions"]], [q["id"] for q in second.data["questions"]])
 
-    def test_submitted_exam_can_be_restarted_with_fresh_questions(self):
-        with patch("apps.attempts.views.random.sample", side_effect=lambda population, count: population[:count]):
-            first = self.start()
+    def test_submitted_exam_requires_admin_result_deletion_before_retake(self):
+        first = self.start()
         self.client.post(
             f"/api/exam-attempts/{first.data['id']}/submit/",
             {"student_code": self.student.student_code},
             format="json",
         )
-        with patch("apps.attempts.views.random.sample", side_effect=lambda population, count: population[-count:]):
-            second = self.start()
+        blocked = self.start()
+        self.assertEqual(blocked.status_code, 409)
+        self.assertEqual(blocked.data["error"], "exam_already_submitted")
+        self.assertEqual(self.start(self.other_student).status_code, 200)
+
+        admin_user = get_user_model().objects.create_superuser(
+            username="exam-admin", email="admin@example.com", password="secret"
+        )
+        self.client.force_login(admin_user)
+        result = Result.objects.get(attempt_id=first.data["id"])
+        deleted = self.client.post(f"/admin/results/result/{result.pk}/delete/", {"post": "yes"})
+        self.assertEqual(deleted.status_code, 302)
+        self.assertFalse(Result.objects.filter(pk=result.pk).exists())
+        self.client.logout()
+
+        second = self.start()
+        self.assertEqual(second.status_code, 200)
         self.assertNotEqual(first.data["id"], second.data["id"])
         self.assertNotEqual(
             {question["question_text_snapshot"] for question in first.data["questions"]},
             {question["question_text_snapshot"] for question in second.data["questions"]},
         )
 
-    def test_generated_exam_uses_persisted_questions_with_random_order(self):
+    def test_students_on_same_exam_receive_different_questions_with_same_type_mix(self):
         selected = list(self.level.question_bank.order_by("id")[:50])
         for order, question in enumerate(selected, start=1):
             ExamQuestion.objects.create(exam=self.exam, question=question, display_order=order)
 
-        with patch("apps.attempts.views.random.shuffle", side_effect=lambda values: values.reverse()):
-            first = self.start()
-        with patch("apps.attempts.views.random.shuffle", side_effect=lambda values: values.__setitem__(slice(None), values[1:] + values[:1])):
-            second = self.start(self.other_student)
+        first = self.start()
+        second = self.start(self.other_student)
 
         first_questions = {question["question_text_snapshot"] for question in first.data["questions"]}
         second_questions = {question["question_text_snapshot"] for question in second.data["questions"]}
-        self.assertEqual(first_questions, second_questions)
-        self.assertNotEqual(
-            [question["question_text_snapshot"] for question in first.data["questions"]],
-            [question["question_text_snapshot"] for question in second.data["questions"]],
-        )
+        self.assertTrue(first_questions.isdisjoint(second_questions))
+        self.assertEqual({question["question_type_snapshot"] for question in first.data["questions"]}, {"true_false"})
+        self.assertEqual({question["question_type_snapshot"] for question in second.data["questions"]}, {"true_false"})
 
     def test_student_cannot_access_another_students_attempt(self):
         attempt = self.start().data["id"]

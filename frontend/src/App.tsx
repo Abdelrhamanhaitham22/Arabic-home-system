@@ -253,6 +253,7 @@ const copy = {
     back: "السابق",
     next: "التالي",
     noExams: "لا توجد اختبارات متاحة حالياً.",
+    examAlreadySubmitted: "لقد سلّمت هذا الاختبار بالفعل. لإعادة المحاولة، اطلب من الإدارة حذف نتيجتك أولاً.",
   },
   ru: {
     home: "Главная",
@@ -322,6 +323,7 @@ const copy = {
     back: "Назад",
     next: "Далее",
     noExams: "Нет доступных экзаменов.",
+    examAlreadySubmitted: "Вы уже сдали этот экзамен. Для повторной попытки попросите администратора удалить результат.",
   },
 } as const;
 const assessmentStatusLabels: Record<AssessmentStatus, string> = {
@@ -860,7 +862,9 @@ function Exams({ t }: { t: Copy }) {
       });
       const body = await readResponse(response);
       if (!response.ok)
-        throw new Error(String(body.message || "Could not start exam."));
+        throw new Error(body.error === "exam_already_submitted"
+          ? t.examAlreadySubmitted
+          : String(body.message || "Could not start exam."));
       setAttempt(body as unknown as Attempt);
       setSelected(0);
     } catch (caught) {

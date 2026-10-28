@@ -1,14 +1,16 @@
 import random
+from collections import Counter
 from decimal import Decimal
 
-from django.db import IntegrityError, transaction
-from django.db.models import Prefetch
+from django.db import transaction
+from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.exams.models import Exam
+from apps.results.models import Result
 from apps.students.models import Student
 from apps.students.promotions import promote_student_from_attempt
 from .models import AttemptQuestion, ExamAttempt, StudentAnswer
@@ -40,19 +42,36 @@ def attempt_response(attempt):
     return Response(ExamAttemptSerializer(attempt).data)
 
 
-def fresh_retake_questions(exam, selected_exam_questions):
-    questions = list(exam.level.question_bank.filter(is_active=True).prefetch_related("choices"))
+def fresh_attempt_questions(exam, selected_exam_questions):
     if selected_exam_questions:
-        question_types = [question.question.question_type for question in selected_exam_questions]
-        required_types = {question_type: question_types.count(question_type) for question_type in set(question_types)}
+        required_groups = Counter(
+            (selected_question.question.source_id, selected_question.question.question_type)
+            for selected_question in selected_exam_questions
+        )
     else:
-        required_types = {"true_false": exam.question_count // 2, "multiple_choice": exam.question_count - exam.question_count // 2}
+        required_groups = {
+            (None, "true_false"): exam.question_count // 2,
+            (None, "multiple_choice"): exam.question_count - exam.question_count // 2,
+        }
+    usage = dict(
+        AttemptQuestion.objects.filter(attempt__exam=exam, original_question__isnull=False)
+        .values("original_question_id").annotate(count=Count("id"))
+        .values_list("original_question_id", "count")
+    )
     selected = []
-    for question_type, count in required_types.items():
-        available = [question for question in questions if question.question_type == question_type]
+    selected_ids = set()
+    for (source_id, question_type), count in required_groups.items():
+        pool = exam.level.question_bank.filter(is_active=True, question_type=question_type)
+        if source_id is not None:
+            pool = pool.filter(source_id=source_id)
+        available = list(pool.exclude(id__in=selected_ids).prefetch_related("choices"))
         if len(available) < count:
             raise ValueError("The question bank does not contain enough questions for a new attempt.")
-        selected.extend(random.sample(available, count))
+        random.shuffle(available)
+        available.sort(key=lambda question: usage.get(question.id, 0))
+        chosen = available[:count]
+        selected.extend(chosen)
+        selected_ids.update(question.id for question in chosen)
     return selected
 
 
@@ -89,46 +108,48 @@ class StartExamView(APIView):
         if exam.level.question_bank_errors():
             return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
 
+        with transaction.atomic():
+            Student.objects.select_for_update().get(pk=student.pk)
+            return self.start_for_student(student, exam)
+
+    @staticmethod
+    def start_for_student(student, exam):
+        if Result.objects.filter(student=student, exam=exam).exists():
+            return Response({
+                "error": "exam_already_submitted",
+                "message": "You have already submitted this exam. Ask an administrator to remove your result before trying again.",
+            }, status=409)
+
         existing = ExamAttempt.objects.filter(student=student, exam=exam, status="in_progress").first()
         if existing:
             return attempt_response(existing)
 
         try:
-            existing_attempts = ExamAttempt.objects.filter(student=student, exam=exam).exists()
             selected_exam_questions = list(exam.selected_questions.select_related("question").order_by("display_order"))
-            if existing_attempts:
-                selected = fresh_retake_questions(exam, selected_exam_questions)
-            elif selected_exam_questions:
-                if len(selected_exam_questions) != exam.question_count:
-                    return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
-                selected = [selected_question.question for selected_question in selected_exam_questions]
-            else:
-                selected = fresh_retake_questions(exam, [])
+            if selected_exam_questions and len(selected_exam_questions) != exam.question_count:
+                return Response({"error": "question_bank_incomplete", "message": "This exam is not ready yet."}, status=409)
+            selected = fresh_attempt_questions(exam, selected_exam_questions)
         except ValueError as error:
             return Response({"error": "question_bank_incomplete", "message": str(error)}, status=409)
         points = exam.max_score / len(selected)
         random.shuffle(selected)
-        try:
-            with transaction.atomic():
-                attempt = ExamAttempt.objects.create(student=student, exam=exam, max_score=exam.max_score)
-                AttemptQuestion.objects.bulk_create([
-                    AttemptQuestion(
-                        attempt=attempt,
-                        original_question=question,
-                        display_order=index,
-                        points_snapshot=points,
-                        question_text_snapshot=question.prompt,
-                        question_type_snapshot=question.question_type,
-                        choices_snapshot=[{"id": choice.id, "text": choice.text} for choice in random.sample(list(question.choices.all()), len(question.choices.all()))],
-                        correct_answer_snapshot={
-                            "choice_id": next(choice.id for choice in question.choices.all() if choice.is_correct),
-                            "value": next(choice.text for choice in question.choices.all() if choice.is_correct),
-                        },
-                    )
-                    for index, question in enumerate(selected, start=1)
-                ])
-        except IntegrityError:
-            attempt = get_object_or_404(ExamAttempt, student=student, exam=exam)
+        attempt = ExamAttempt.objects.create(student=student, exam=exam, max_score=exam.max_score)
+        AttemptQuestion.objects.bulk_create([
+            AttemptQuestion(
+                attempt=attempt,
+                original_question=question,
+                display_order=index,
+                points_snapshot=points,
+                question_text_snapshot=question.prompt,
+                question_type_snapshot=question.question_type,
+                choices_snapshot=[{"id": choice.id, "text": choice.text} for choice in random.sample(list(question.choices.all()), len(question.choices.all()))],
+                correct_answer_snapshot={
+                    "choice_id": next(choice.id for choice in question.choices.all() if choice.is_correct),
+                    "value": next(choice.text for choice in question.choices.all() if choice.is_correct),
+                },
+            )
+            for index, question in enumerate(selected, start=1)
+        ])
         return attempt_response(attempt)
 
 
