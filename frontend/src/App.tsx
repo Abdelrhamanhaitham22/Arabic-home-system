@@ -15,6 +15,7 @@ type AssessmentStatus =
   | "incomplete"
   | "awaiting_exam"
   | "below_threshold"
+  | "below_written_threshold"
   | "promoted"
   | "highest_level"
   | "promotion_pending"
@@ -327,6 +328,7 @@ const assessmentStatusLabels: Record<AssessmentStatus, string> = {
   incomplete: "بانتظار استكمال التقييم",
   awaiting_exam: "اكتملت درجات المعلم؛ بانتظار الاختبار التحريري",
   below_threshold: "أقل من نسبة الترقية المطلوبة (50٪)",
+  below_written_threshold: "درجة التحريري يجب أن تتجاوز 50٪ للترقية",
   promoted: "تمت الترقية إلى المستوى التالي",
   highest_level: "وصل الطالب إلى أعلى مستوى نشط",
   promotion_pending: "مستوفٍ للشروط؛ الترقية بانتظار المعالجة",

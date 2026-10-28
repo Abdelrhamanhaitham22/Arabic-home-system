@@ -275,7 +275,7 @@ class StudentPromotionTests(TestCase):
             oral_max=50,
         )
 
-    def make_attempt(self, score=Decimal("50")):
+    def make_attempt(self, score=Decimal("51")):
         return ExamAttempt.objects.create(
             student=self.student,
             exam=self.exam,
@@ -297,8 +297,8 @@ class StudentPromotionTests(TestCase):
         )
 
     def test_exactly_fifty_percent_promotes_and_records_score_snapshot(self):
-        attempt = self.make_attempt(Decimal("50"))
-        self.make_assessment(Decimal("25"), Decimal("25"))
+        attempt = self.make_attempt(Decimal("51"))
+        self.make_assessment(Decimal("24"), Decimal("25"))
 
         outcome = promote_student_from_attempt(attempt.id)
 
@@ -309,8 +309,8 @@ class StudentPromotionTests(TestCase):
         self.assertEqual(StudentPromotion.objects.get().total_score, Decimal("100.00"))
 
     def test_below_fifty_percent_does_not_promote(self):
-        attempt = self.make_attempt(Decimal("49.99"))
-        self.make_assessment(Decimal("25"), Decimal("25"))
+        attempt = self.make_attempt(Decimal("51"))
+        self.make_assessment(Decimal("24"), Decimal("24.99"))
 
         outcome = promote_student_from_attempt(attempt.id)
 
@@ -319,16 +319,31 @@ class StudentPromotionTests(TestCase):
         self.assertEqual(self.student.level, self.first_level)
         self.assertFalse(StudentPromotion.objects.exists())
 
-    def test_submitted_zero_is_a_valid_score(self):
-        attempt = self.make_attempt(Decimal("0"))
-        self.make_assessment(Decimal("50"), Decimal("50"))
+    def test_written_score_at_fifty_percent_blocks_promotion_despite_high_total(self):
+        attempt = self.make_attempt(Decimal("50"))
+        assessment = self.make_assessment(Decimal("50"), Decimal("50"))
 
         outcome = promote_student_from_attempt(attempt.id)
 
         self.student.refresh_from_db()
+        self.assertEqual(outcome.reason, "below_written_threshold")
+        self.assertEqual(assessment_promotion_status(assessment), "below_written_threshold")
+        self.assertEqual(self.student.level, self.first_level)
+        self.assertFalse(StudentPromotion.objects.exists())
+
+    def test_written_score_above_fifty_percent_allows_promotion(self):
+        attempt = self.make_attempt(Decimal("50.01"))
+        assessment = self.make_assessment(Decimal("50"), Decimal("50"))
+        assessment.written_score = attempt.score
+        assessment.save(update_fields=("written_score",))
+
+        outcome = promote_student_from_attempt(attempt.id)
+
         self.assertEqual(outcome.status, "promoted")
-        self.assertEqual(outcome.promotion.written_score, Decimal("0.00"))
+        self.student.refresh_from_db()
         self.assertEqual(self.student.level, self.next_level)
+        assessment.student.refresh_from_db()
+        self.assertEqual(assessment_promotion_status(assessment), "promoted")
 
     def test_missing_or_incomplete_teacher_scores_do_not_promote(self):
         attempt = self.make_attempt()

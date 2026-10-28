@@ -11,6 +11,7 @@ from apps.teachers.models import TeacherAssessment, TeacherAssessmentConfig
 
 
 PASS_PERCENTAGE = Decimal("50")
+WRITTEN_PASS_PERCENTAGE = Decimal("50")
 
 
 @dataclass(frozen=True)
@@ -78,7 +79,7 @@ def _completed_assessment_status(assessment):
         return "awaiting_exam"
     candidate = _promotion_candidate(attempt, assessment.student)
     if isinstance(candidate, PromotionOutcome):
-        return "below_threshold" if candidate.reason == "below_threshold" else "review_required"
+        return candidate.reason if candidate.reason in ("below_threshold", "below_written_threshold") else "review_required"
     return "promotion_pending"
 
 
@@ -140,6 +141,8 @@ def _promotion_candidate(attempt, student):
     ).order_by("order").first()
     if next_level is None:
         return PromotionOutcome("not_eligible", "no_next_active_level")
+    if attempt.score * Decimal("100") <= config.written_max * WRITTEN_PASS_PERCENTAGE:
+        return PromotionOutcome("not_eligible", "below_written_threshold")
     total_score = attempt.score + assessment.activity_dictation_score + assessment.oral_score
     total_max = config.total_max
     percentage = total_score * Decimal("100") / total_max
