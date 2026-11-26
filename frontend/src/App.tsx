@@ -2167,6 +2167,22 @@ function ExamManagement() {
     }
     void load();
   }
+  async function clearOldExams() {
+    const confirmed = window.confirm(
+      "Remove every exam, attempt, and result? Question banks and student promotion history will be preserved. This cannot be undone.",
+    );
+    if (!confirmed) return;
+    setError("");
+    const response = await adminRequest("/exams/admin-management/exams/", {
+      method: "DELETE",
+    });
+    const body = await readResponse(response);
+    if (!response.ok) {
+      setError(String(body.message || "Could not remove old exams."));
+      return;
+    }
+    setExams([]);
+  }
   if (!authorized)
     return (
       <div className="page form-page">
@@ -2207,9 +2223,18 @@ function ExamManagement() {
             Drafts can be edited. Exams with student attempts are locked.
           </p>
         </div>
-        <a className="button primary" href="/admin-generator">
-          Generate exam
-        </a>
+        <div className="managed-exam-actions">
+          <button
+            className="button text-button"
+            disabled={exams.length === 0}
+            onClick={() => void clearOldExams()}
+          >
+            Remove all old exams
+          </button>
+          <a className="button primary" href="/admin-generator">
+            Generate exam
+          </a>
+        </div>
       </div>
       {error && <p className="form-error">{error}</p>}
       <div className="managed-exams">

@@ -220,6 +220,19 @@ class AdminExamManagementView(APIView):
             return Response({"message": message}, status=status.HTTP_400_BAD_REQUEST)
         return Response(self.serialize_exam(duplicate), status=status.HTTP_201_CREATED)
 
+    def delete(self, request):
+        if (error := admin_error(request)):
+            return error
+        if not has_staff_role(request.user, "editor"):
+            return Response({"message": "Editor access required."}, status=status.HTTP_403_FORBIDDEN)
+        with transaction.atomic():
+            deleted_count, _ = Exam.objects.all().delete()
+        record_audit(request.user, "exams.reset", "Exam", None, {"deleted_records": deleted_count})
+        return Response({
+            "deleted_records": deleted_count,
+            "message": "All exams, attempts, and results were removed. Question banks and promotion history were preserved.",
+        })
+
     @staticmethod
     def serialize_exam(exam):
         return {

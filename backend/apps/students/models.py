@@ -60,7 +60,9 @@ class StudentPromotion(models.Model):
     student = models.ForeignKey("students.Student", on_delete=models.PROTECT, related_name="promotions")
     source_attempt = models.OneToOneField(
         "attempts.ExamAttempt",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="student_promotion",
     )
     source_result = models.ForeignKey(
