@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from apps.exams.models import Exam
+from apps.teachers.models import TeacherAssessment
 
 
 class Command(BaseCommand):
@@ -19,11 +20,17 @@ class Command(BaseCommand):
             raise CommandError("Refusing to delete data without --confirm.")
 
         with transaction.atomic():
+            TeacherAssessment.objects.update(
+                written_score=0,
+                is_complete=False,
+                completed_at=None,
+            )
             deleted_exams, _ = Exam.objects.all().delete()
 
         self.stdout.write(
             self.style.SUCCESS(
                 f"Deleted {deleted_exams} exam-related records. "
-                "Question banks and student promotion history were preserved."
+                "Written scores were cleared; other teacher scores, question banks, and "
+                "student promotion history were preserved."
             )
         )

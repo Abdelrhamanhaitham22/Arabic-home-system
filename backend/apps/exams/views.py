@@ -226,11 +226,18 @@ class AdminExamManagementView(APIView):
         if not has_staff_role(request.user, "editor"):
             return Response({"message": "Editor access required."}, status=status.HTTP_403_FORBIDDEN)
         with transaction.atomic():
+            from apps.teachers.models import TeacherAssessment
+
+            TeacherAssessment.objects.update(
+                written_score=0,
+                is_complete=False,
+                completed_at=None,
+            )
             deleted_count, _ = Exam.objects.all().delete()
         record_audit(request.user, "exams.reset", "Exam", None, {"deleted_records": deleted_count})
         return Response({
             "deleted_records": deleted_count,
-            "message": "All exams, attempts, and results were removed. Question banks and promotion history were preserved.",
+            "message": "All exams, attempts, and results were removed. Written scores were cleared; other teacher scores, question banks, and promotion history were preserved.",
         })
 
     @staticmethod

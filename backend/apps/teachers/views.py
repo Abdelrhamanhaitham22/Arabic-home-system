@@ -208,13 +208,19 @@ class TeacherMeView(APIView):
 
     @staticmethod
     def serialize_assessment(assessment):
+        latest_attempt = ExamAttempt.objects.filter(
+            student_id=assessment.student_id,
+            exam__level_id=assessment.level_id,
+            status="submitted",
+        ).order_by("-submitted_at", "-id").first()
+        written_score = latest_attempt.score if latest_attempt else 0
         return {
             "student_code": assessment.student.student_code,
             "level_id": assessment.level_id,
-            "written_score": float(assessment.written_score),
+            "written_score": float(written_score),
             "activity_dictation_score": float(assessment.activity_dictation_score),
             "oral_score": float(assessment.oral_score),
-            "total_score": float(assessment.total_score),
+            "total_score": float(written_score + assessment.activity_dictation_score + assessment.oral_score),
             "teacher_notes": assessment.teacher_notes,
             "is_complete": assessment.is_complete,
             "completed_at": assessment.completed_at,
