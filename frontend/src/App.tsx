@@ -327,7 +327,7 @@ const copy = {
   },
 } as const;
 const assessmentStatusLabels: Record<AssessmentStatus, string> = {
-  incomplete: "بانتظار استكمال التقييم",
+  incomplete: "بانتظار التقييم",
   awaiting_exam: "اكتملت درجات المعلم؛ بانتظار الاختبار التحريري",
   below_threshold: "أقل من نسبة الترقية المطلوبة (50٪)",
   below_written_threshold: "درجة التحريري يجب أن تتجاوز 50٪ للترقية",
@@ -1298,15 +1298,7 @@ function TeacherAssessments() {
   const visibleStudents =
     selectedLevelId === null
       ? session.students
-      : session.students.filter(
-          (item) =>
-            item.level_id === selectedLevelId ||
-            session.assessments.some(
-              (assessment) =>
-                assessment.student_code === item.student_code &&
-                assessment.level_id === selectedLevelId,
-            ),
-        );
+      : session.students.filter((item) => item.level_id === selectedLevelId);
   return (
     <div className="page teacher-page">
       <div className="teacher-heading">

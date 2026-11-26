@@ -44,7 +44,7 @@
 **Status: Complete**
 
 - The student results lookup returns and displays the current level.
-- The teacher portal shows assessment state: incomplete, awaiting the online exam, below 50%, promoted, at the highest active level, pending promotion, or review required. Teachers can view students they assessed at an assigned level after those students advance; past scores are read-only unless the student's current level is assigned to that teacher.
+- The teacher portal shows assessment state for each student's current level: awaiting assessment, awaiting the online exam, below 50%, promoted, at the highest active level, pending promotion, or review required. After promotion, the student disappears from the previous level's teacher roster and appears in the new level awaiting assessment; previous-level grades remain stored but are not shown in the teacher portal.
 - Promotion history is available as a read-only Django admin record.
 - For a score correction after promotion, authorized staff edit the existing teacher assessment in Django admin; published results for that level are refreshed from the corrected scores. A difference from the promotion snapshot is marked for review. Staff then adjust the student's current level in Student admin if needed. The original promotion record remains as an audit entry, and the system does not reverse promotions automatically.
 

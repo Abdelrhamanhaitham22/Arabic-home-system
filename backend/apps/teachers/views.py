@@ -1,7 +1,7 @@
 import unicodedata
 from decimal import Decimal, InvalidOperation
 
-from django.db.models import Q
+from django.db.models import F
 from django.shortcuts import get_object_or_404
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
@@ -169,10 +169,9 @@ class TeacherMeView(APIView):
     @staticmethod
     def students_for_levels(assigned_level_ids):
         return list(
-            Student.objects.filter(
-                Q(level_id__in=assigned_level_ids)
-                | Q(teacher_assessments__level_id__in=assigned_level_ids)
-            ).select_related("level").distinct().order_by("full_name")
+            Student.objects.filter(level_id__in=assigned_level_ids)
+            .select_related("level")
+            .order_by("full_name")
         )
 
     @staticmethod
@@ -181,6 +180,7 @@ class TeacherMeView(APIView):
             TeacherAssessment.objects.filter(
                 student__in=students,
                 level_id__in=assigned_level_ids,
+                level_id=F("student__level_id"),
             ).select_related("student", "level")
         )
 
