@@ -196,9 +196,6 @@ class SubmitAttemptView(APIView):
             return error
         if attempt.status == "submitted":
             return attempt_response(attempt)
-        if attempt.is_expired:
-            return Response({"error": "time_expired", "message": "The exam time has expired."}, status=409)
-
         final_answers = request.data.get("answers", [])
         for item in final_answers:
             question = get_object_or_404(attempt.questions.all(), id=item.get("attempt_question_id"))

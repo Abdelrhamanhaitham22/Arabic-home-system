@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
   BrowserRouter,
@@ -244,6 +244,7 @@ const copy = {
     resumeExam: "استكمال الاختبار",
     submitExam: "تسليم الاختبار",
     confirmSubmitExam: "هل أنت موافق على تسليم الاختبار؟",
+    examSubmitted: "تم تسليم الاختبار. نتيجتك:",
     question: "السؤال",
     answered: "تمت الإجابة",
     unanswered: "لم تتم الإجابة",
@@ -315,6 +316,7 @@ const copy = {
     resumeExam: "Продолжить экзамен",
     submitExam: "Сдать экзамен",
     confirmSubmitExam: "Вы уверены, что хотите сдать экзамен?",
+    examSubmitted: "Экзамен сдан. Ваш результат:",
     question: "Вопрос",
     answered: "Отвечено",
     unanswered: "Без ответа",
@@ -833,6 +835,7 @@ function Exams({ t }: { t: Copy }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const submissionStarted = useRef(false);
   async function loadExams(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -893,6 +896,11 @@ function Exams({ t }: { t: Copy }) {
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
   }, [attempt]);
+  useEffect(() => {
+    if (attempt?.status === "in_progress" && secondsLeft === 0) {
+      void submit(true);
+    }
+  }, [attempt, secondsLeft]);
   async function answer(question: AttemptQuestion, choiceId: number) {
     if (!attempt || attempt.status === "submitted") return;
     const response = await fetch(
@@ -927,9 +935,12 @@ function Exams({ t }: { t: Copy }) {
       ),
     });
   }
-  async function submit() {
+  async function submit(automatic = false) {
     if (!attempt) return;
-    if (!window.confirm(t.confirmSubmitExam)) return;
+    if (submissionStarted.current) return;
+    if (!automatic && !window.confirm(t.confirmSubmitExam)) return;
+    submissionStarted.current = true;
+    setError("");
     setLoading(true);
     try {
       const response = await fetch(
@@ -945,6 +956,7 @@ function Exams({ t }: { t: Copy }) {
         throw new Error(String(body.message || "Could not submit exam."));
       setAttempt(body as unknown as Attempt);
     } catch (caught) {
+      submissionStarted.current = false;
       setError(
         caught instanceof Error ? caught.message : "Could not submit exam.",
       );
@@ -977,6 +989,19 @@ function Exams({ t }: { t: Copy }) {
             </div>
           )}
         </div>
+        {attempt.status === "submitted" && (
+          <div className="notice success-notice" role="status">
+            <strong>{t.examSubmitted}</strong>
+            <p>
+              {attempt.score} / {attempt.max_score} ({attempt.percentage}%)
+            </p>
+          </div>
+        )}
+        {error && (
+          <div className="notice error-notice" role="alert">
+            <p>{error}</p>
+          </div>
+        )}
         <div className="attempt-layout">
           <aside className="question-nav">
             {attempt.questions.map((item, index) => (
