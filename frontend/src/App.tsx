@@ -243,6 +243,7 @@ const copy = {
     startExam: "ابدأ الاختبار",
     resumeExam: "استكمال الاختبار",
     submitExam: "تسليم الاختبار",
+    confirmSubmitExam: "هل أنت موافق على تسليم الاختبار؟",
     question: "السؤال",
     answered: "تمت الإجابة",
     unanswered: "لم تتم الإجابة",
@@ -313,6 +314,7 @@ const copy = {
     startExam: "Начать экзамен",
     resumeExam: "Продолжить экзамен",
     submitExam: "Сдать экзамен",
+    confirmSubmitExam: "Вы уверены, что хотите сдать экзамен?",
     question: "Вопрос",
     answered: "Отвечено",
     unanswered: "Без ответа",
@@ -927,6 +929,7 @@ function Exams({ t }: { t: Copy }) {
   }
   async function submit() {
     if (!attempt) return;
+    if (!window.confirm(t.confirmSubmitExam)) return;
     setLoading(true);
     try {
       const response = await fetch(
@@ -1054,7 +1057,8 @@ function Exams({ t }: { t: Copy }) {
                   {t.next}
                 </button>
               )}
-              {attempt.status === "in_progress" && (
+              {attempt.status === "in_progress" &&
+                selected === attempt.questions.length - 1 && (
                 <button
                   className="button primary"
                   disabled={loading}
